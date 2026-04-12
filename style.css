@@ -59,71 +59,11 @@ header p {
     margin: 0;
 }
 
-/* Search Form */
-.search-section {
-    background: var(--sjdm-white);
-    padding: 1.5rem;
-    border-radius: 15px;
-    box-shadow: 0 4px 15px rgba(0,0,0,0.08);
-    margin-bottom: 2rem;
-    border: 1px solid rgba(255, 159, 28, 0.2);
-}
-
-#cityForm {
-    display: flex;
-    gap: 1rem;
-    align-items: center;
-    flex-wrap: wrap;
-}
-
-#cityForm label {
-    font-weight: 600;
-    color: var(--sjdm-dark);
-    min-width: 80px;
-}
-
-#cityForm input[type="text"] {
-    padding: 0.75rem 1rem;
-    border: 2px solid var(--sjdm-pink);
-    border-radius: 10px;
-    font-size: 1rem;
-    flex: 1;
-    min-width: 200px;
-    transition: all 0.3s ease;
-}
-
-#cityForm input[type="text"]:focus {
-    outline: none;
-    border-color: var(--sjdm-orange);
-    box-shadow: 0 0 0 3px rgba(255, 107, 157, 0.25);
-}
-
-#cityForm button {
-    padding: 0.75rem 1.5rem;
-    background: var(--sjdm-orange);
-    color: var(--sjdm-white);
-    border: none;
-    border-radius: 10px;
-    cursor: pointer;
-    font-size: 1rem;
-    font-weight: 600;
-    transition: all 0.3s ease;
-    box-shadow: 0 2px 8px rgba(255, 159, 28, 0.3);
-}
-
-#cityForm button:hover {
-    background: #e08e00;
-    transform: translateY(-2px);
-    box-shadow: 0 4px 12px rgba(255, 159, 28, 0.4);
-}
-
-#cityForm button:active {
-    transform: translateY(0);
-}
-
 /* Tab Navigation Styles */
 .tab-container {
     margin-top: 2rem;
+    max-width: 1200px;
+    margin: 0 auto;
 }
 
 .tab-header {
@@ -185,9 +125,50 @@ header p {
     display: none;
 }
 
-/* Cards */
-.card {
-    display: none;
+/* Card Styles */
+.info-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 1.5rem;
+}
+
+.info-card {
+    background: #fff;
+    border-radius: 12px;
+    padding: 1.5rem;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+    border: 1px solid rgba(0,0,0,0.05);
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+}
+
+.info-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 8px 15px rgba(0,0,0,0.1);
+}
+
+.card-icon {
+    font-size: 2.5rem;
+    margin-bottom: 1rem;
+}
+
+.card-label {
+    font-size: 0.9rem;
+    color: #7f8c8d;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 0.5rem;
+    font-weight: 600;
+}
+
+.card-value {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: var(--sjdm-dark);
+    line-height: 1.2;
 }
 
 /* Data content adjustments */
@@ -232,12 +213,16 @@ header p {
 
 /* Social media posts */
 .social-post {
-    border-bottom: 1px solid rgba(238, 238, 238, 0.5);
-    padding: 1.25rem 0;
+    background: #fff;
+    border-radius: 12px;
+    padding: 1.5rem;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+    margin-bottom: 1.5rem;
+    border: 1px solid rgba(0,0,0,0.05);
 }
 
 .social-post:last-child {
-    border-bottom: none;
+    margin-bottom: 0;
 }
 
 .social-post h3 {
@@ -385,22 +370,12 @@ footer {
         font-size: 1rem;
     }
     
-    #cityForm {
-        flex-direction: column;
-        align-items: stretch;
-    }
-    
-    #cityForm input[type="text"] {
-        min-width: auto;
-    }
-    
     .dashboard-grid {
         grid-template-columns: 1fr;
     }
 
-    .card h2 {
-        font-size: 1.25rem;
-        padding: 1rem;
+    .info-grid {
+        grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
     }
 
     .tab-header {
@@ -430,11 +405,6 @@ footer {
     
     header h1 {
         font-size: 1.8rem;
-    }
-    
-    .card h2 {
-        font-size: 1.15rem;
-        padding: 0.85rem;
     }
     
     .data-content {

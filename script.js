@@ -45,7 +45,14 @@ const API_CONFIG = {
     }
 };
 
-// Utility function to create DOM elements
+/**
+ * Utility function to create and return a new DOM element.
+ * 
+ * @param {string} tag - The HTML tag name of the element to create.
+ * @param {string} [className] - Optional CSS class name(s) to assign to the element.
+ * @param {string} [textContent] - Optional text content to set inside the element.
+ * @returns {HTMLElement} The created DOM element.
+ */
 function createElement(tag, className, textContent) {
     const element = document.createElement(tag);
     if (className) element.className = className;
@@ -53,25 +60,45 @@ function createElement(tag, className, textContent) {
     return element;
 }
 
-// Utility function to show loading state
+/**
+ * Displays a loading state in the specified DOM element.
+ * 
+ * @param {string} elementId - The ID of the HTML element where the loading message will be shown.
+ */
 function showLoading(elementId) {
     const element = document.getElementById(elementId);
-    element.innerHTML = '<p class="loading">Loading data...</p>';
+    if (element) element.innerHTML = '<p class="loading">Loading data...</p>';
 }
 
-// Utility function to show error state
+/**
+ * Displays an error message in the specified DOM element.
+ * 
+ * @param {string} elementId - The ID of the HTML element where the error message will be shown.
+ * @param {string} message - The error message to display.
+ */
 function showError(elementId, message) {
     const element = document.getElementById(elementId);
-    element.innerHTML = `<p class="error">Error: ${message}</p>`;
+    if (element) element.innerHTML = `<p class="error">Error: ${message}</p>`;
 }
 
-// Utility function to show success state
+/**
+ * Injects successfully fetched or formatted HTML content into a specified DOM element.
+ * 
+ * @param {string} elementId - The ID of the HTML element to update.
+ * @param {string} content - The HTML content to insert into the element.
+ */
 function showSuccess(elementId, content) {
     const element = document.getElementById(elementId);
-    element.innerHTML = content;
+    if (element) element.innerHTML = content;
 }
 
-// Fetch weather data
+/**
+ * Asynchronously fetches and returns weather data for a given city.
+ * Currently uses mock data for demonstration purposes.
+ * 
+ * @param {string} city - The name of the city to fetch weather data for.
+ * @returns {Promise<Object|null>} A promise that resolves to the weather data object, or null if it fails.
+ */
 async function fetchWeatherData(city) {
     try {
         showLoading('weatherData');
@@ -100,7 +127,12 @@ async function fetchWeatherData(city) {
     }
 }
 
-// Fetch census/population data
+/**
+ * Asynchronously fetches census and demographic data.
+ * Currently uses mock data representative of a city's census statistics.
+ * 
+ * @returns {Promise<Object|null>} A promise that resolves to the census data object, or null on error.
+ */
 async function fetchCensusData() {
     try {
         showLoading('censusData');
@@ -124,7 +156,12 @@ async function fetchCensusData() {
     }
 }
 
-// Fetch economic data
+/**
+ * Asynchronously fetches economic indicators for the city.
+ * Provides mock data for GDP, employment rate, major industries, etc.
+ * 
+ * @returns {Promise<Object|null>} A promise that resolves to the economic data object, or null on error.
+ */
 async function fetchEconomicData() {
     try {
         showLoading('economicData');
@@ -153,7 +190,12 @@ async function fetchEconomicData() {
     }
 }
 
-// Fetch traffic data
+/**
+ * Asynchronously fetches traffic conditions and incident reports.
+ * Returns mock data regarding major routes and their current status.
+ * 
+ * @returns {Promise<Object|null>} A promise that resolves to the traffic data object, or null on error.
+ */
 async function fetchTrafficData() {
     try {
         showLoading('trafficData');
@@ -185,7 +227,12 @@ async function fetchTrafficData() {
     }
 }
 
-// Fetch social media data (mock Facebook posts)
+/**
+ * Asynchronously fetches recent social media updates or local government posts.
+ * Provides mock facebook posts data.
+ * 
+ * @returns {Promise<Object|null>} A promise that resolves to the social media data object, or null on error.
+ */
 async function fetchSocialData() {
     try {
         showLoading('socialData');
@@ -226,7 +273,12 @@ async function fetchSocialData() {
     }
 }
 
-// Fetch health services data
+/**
+ * Asynchronously fetches statistics and metrics related to local health services.
+ * Uses mock data for hospitals, vaccination rates, mortality rates, etc.
+ * 
+ * @returns {Promise<Object|null>} A promise that resolves to the health data object, or null on error.
+ */
 async function fetchHealthData() {
     try {
         showLoading('healthData');
@@ -253,7 +305,12 @@ async function fetchHealthData() {
     }
 }
 
-// Fetch education data
+/**
+ * Asynchronously fetches educational statistics.
+ * Provides mock data for schools count, enrollment numbers, literacy rates, etc.
+ * 
+ * @returns {Promise<Object|null>} A promise that resolves to the education data object, or null on error.
+ */
 async function fetchEducationData() {
     try {
         showLoading('educationData');
@@ -286,7 +343,12 @@ async function fetchEducationData() {
     }
 }
 
-// Fetch public safety data
+/**
+ * Asynchronously fetches public safety and crime statistics.
+ * Includes mock data for crime rates, police and fire stations, major crimes, etc.
+ * 
+ * @returns {Promise<Object|null>} A promise that resolves to the safety data object, or null on error.
+ */
 async function fetchSafetyData() {
     try {
         showLoading('safetyData');
@@ -321,7 +383,12 @@ async function fetchSafetyData() {
     }
 }
 
-// Fetch environment data
+/**
+ * Asynchronously fetches environmental data and metrics.
+ * Uses mock data for air and water quality, green spaces, waste management, etc.
+ * 
+ * @returns {Promise<Object|null>} A promise that resolves to the environment data object, or null on error.
+ */
 async function fetchEnvironmentData() {
     try {
         showLoading('environmentData');
@@ -354,7 +421,41 @@ async function fetchEnvironmentData() {
     }
 }
 
-// Render weather data
+/**
+ * Helper to generate a data card HTML string.
+ */
+function createCard(icon, label, value, highlight = false) {
+    const valueClass = highlight ? 'card-value stat-highlight' : 'card-value';
+    return `
+        <div class="info-card">
+            <div class="card-icon">${icon}</div>
+            <div class="card-label">${label}</div>
+            <div class="${valueClass}">${value}</div>
+        </div>
+    `;
+}
+
+function getWeatherIcon(iconCode) {
+    const icons = {
+        '01d': '☀️', '01n': '🌙',
+        '02d': '⛅', '02n': '☁️',
+        '03d': '☁️', '03n': '☁️',
+        '04d': '☁️', '04n': '☁️',
+        '09d': '🌧️', '09n': '🌧️',
+        '10d': '🌦️', '10n': '🌧️',
+        '11d': '⛈️', '11n': '⛈️',
+        '13d': '❄️', '13n': '❄️',
+        '50d': '🌫️', '50n': '🌫️',
+    };
+    return icons[iconCode] || '❔';
+}
+
+/**
+ * Renders the weather data and visualizes a 5-day temperature forecast.
+ * It builds an HTML template including an SVG graph and injects it into the DOM.
+ * 
+ * @param {Object} data - The weather data object to be rendered.
+ */
 function renderWeatherData(data) {
     if (!data) return;
     
@@ -367,64 +468,32 @@ function renderWeatherData(data) {
         { day: 'Day 5', temp: Math.round(data.main.temp + (Math.random() * 3 - 1.5)), icon: '01d', desc: 'Clear sky' }
     ];
 
-    // Find min and max temp to scale the graph properly
-    const temps = forecastDays.map(d => d.temp);
-    const minTemp = Math.min(...temps) - 2;
-    const maxTemp = Math.max(...temps) + 2;
-    const range = maxTemp - minTemp;
-
-    // Generate points for the line chart SVG
-    const width = 100; // Percentage
-    // Increase height of graph to make it larger vertically
-    const height = 300; 
-    
-    // Calculate coordinates for points
-    const points = forecastDays.map((day, index) => {
-        // Adjust x coordinate to stay well within bounds (10% to 90%)
-        const x = 10 + (index / (forecastDays.length - 1)) * 80;
-        const y = height - (((day.temp - minTemp) / range) * height);
-        return { x, y, temp: day.temp, day: day.day };
-    });
-
     const weatherHTML = `
         <div class="weather-info">
             <div class="current-weather">
-                <h3>Current Conditions</h3>
-                <p><strong>Location:</strong> ${data.name}, ${data.sys.country}</p>
-                <p><strong>Temperature:</strong> ${data.main.temp}°C (feels like ${data.main.feels_like}°C)</p>
-                <p><strong>Condition:</strong> ${data.weather[0].main} - ${data.weather[0].description}</p>
-                <p><strong>Humidity:</strong> ${data.main.humidity}%</p>
-                <p><strong>Pressure:</strong> ${data.main.pressure} hPa</p>
-                <p><strong>Wind Speed:</strong> ${data.wind.speed} m/s</p>
-                <p><strong>Last Updated:</strong> ${new Date(data.dt * 1000).toLocaleTimeString()}</p>
+                <h3>Current Conditions in ${data.name}, ${data.sys.country}</h3>
+                <div class="info-grid">
+                    ${createCard('🌡️', 'Temperature', `${data.main.temp}°C (Feels like ${data.main.feels_like}°C)`)}
+                    ${createCard('☁️', 'Condition', `${data.weather[0].main} - ${data.weather[0].description}`)}
+                    ${createCard('💧', 'Humidity', `${data.main.humidity}%`)}
+                    ${createCard('⏱️', 'Pressure', `${data.main.pressure} hPa`)}
+                    ${createCard('💨', 'Wind Speed', `${data.wind.speed} m/s`)}
+                </div>
             </div>
             
-            <div class="forecast-title">
-                <h3>5-Day Temperature Forecast</h3>
+            <div class="forecast-title" style="margin-top: 2rem;">
+                <h3>5-Day Forecast</h3>
             </div>
             
-            <div class="line-chart-container" style="width: 100%; max-width: 1200px; margin: 0 auto; padding: 20px 0;">
-                <svg width="100%" height="400" viewBox="0 -20 100 400" preserveAspectRatio="none" style="overflow: visible;">
-                    <!-- Grid lines for better readability -->
-                    <line x1="10" y1="0" x2="90" y2="0" stroke="#e0e0e0" stroke-width="0.5" stroke-dasharray="2,2"/>
-                    <line x1="10" y1="100" x2="90" y2="100" stroke="#e0e0e0" stroke-width="0.5" stroke-dasharray="2,2"/>
-                    <line x1="10" y1="200" x2="90" y2="200" stroke="#e0e0e0" stroke-width="0.5" stroke-dasharray="2,2"/>
-                    <line x1="10" y1="300" x2="90" y2="300" stroke="#e0e0e0" stroke-width="0.5" stroke-dasharray="2,2"/>
-                    
-                    <!-- Line -->
-                    <polyline fill="none" stroke="var(--sjdm-pink)" stroke-width="2" points="${points.map(p => `${p.x},${p.y}`).join(' ')}"/>
-                    
-                    <!-- Points and Labels -->
-                    ${points.map(p => `
-                        <circle cx="${p.x}" cy="${p.y}" r="2" fill="var(--sjdm-orange)" stroke="white" stroke-width="1" />
-                        <text x="${p.x}" y="${p.y - 10}" text-anchor="middle" font-size="10" fill="var(--sjdm-dark)" font-weight="bold">${p.temp}°C</text>
-                        <text x="${p.x}" y="330" text-anchor="middle" font-size="10" fill="#666">${p.day}</text>
-                    `).join('')}
-                </svg>
-            </div>
-            
-            <div style="text-align: center; margin-top: 1rem; color: #666; font-size: 0.9rem;">
-                Temperature Trend (°C)
+            <div class="forecast-container">
+                ${forecastDays.map(day => `
+                    <div class="forecast-day">
+                        <div class="forecast-day-name">${day.day}</div>
+                        <div class="forecast-icon">${getWeatherIcon(day.icon)}</div>
+                        <div class="forecast-temp">${day.temp}°C</div>
+                        <div class="forecast-desc">${day.desc}</div>
+                    </div>
+                `).join('')}
             </div>
         </div>
     `;
@@ -432,44 +501,51 @@ function renderWeatherData(data) {
     showSuccess('weatherData', weatherHTML);
 }
 
-// Render census data
-// Generates HTML for demographic data and removes the growth graph, then updates the DOM
+/**
+ * Renders demographic and census statistics into HTML and updates the DOM.
+ * 
+ * @param {Object} data - The census data object.
+ */
 function renderCensusData(data) {
     if (!data) return;
 
     const censusHTML = `
         <div class="census-info">
-            <p><strong>City:</strong> ${data.city}, ${data.province}</p>
-            <p><strong>Region:</strong> ${data.region}</p>
-            <p><strong>Population:</strong> ${data.population.toLocaleString()} people</p>
-            <p><strong>Population Density:</strong> ${data.density.toLocaleString()} per km²</p>
-            <p><strong>Annual Growth Rate:</strong> <span class="stat-highlight">${data.growth_rate}%</span></p>
-            <p><strong>Number of Households:</strong> ${data.households.toLocaleString()}</p>
-            <p><strong>Average Family Size:</strong> ${data.average_family_size} members</p>
+            <h3 style="margin-bottom: 1.5rem;">${data.city}, ${data.province} (${data.region})</h3>
+            <div class="info-grid">
+                ${createCard('👥', 'Population', `${data.population.toLocaleString()} people`)}
+                ${createCard('🏙️', 'Population Density', `${data.density.toLocaleString()} per km²`)}
+                ${createCard('📈', 'Annual Growth Rate', `${data.growth_rate}%`, true)}
+                ${createCard('🏠', 'Number of Households', data.households.toLocaleString())}
+                ${createCard('👨‍👩‍👧‍👦', 'Average Family Size', `${data.average_family_size} members`)}
+            </div>
         </div>
     `;
 
     showSuccess('censusData', censusHTML);
 }
 
-// Render economic data
-// Generates HTML for economic indicators and moves the graph here, then updates the DOM
+/**
+ * Renders economic indicators into HTML, including a customized graph for
+ * employment and poverty metrics, and injects it into the DOM.
+ * 
+ * @param {Object} data - The economic data object.
+ */
 function renderEconomicData(data) {
     if (!data) return;
 
     const economicHTML = `
         <div class="economic-info">
-            <p><strong>City:</strong> ${data.city}</p>
-            <p><strong>GDP per Capita:</strong> ₱${data.gdp_per_capita.toLocaleString()}</p>
-            <p><strong>Employment Rate:</strong> <span class="stat-highlight">${data.employment_rate}%</span></p>
-            <p><strong>Median Monthly Income:</strong> ₱${data.median_income.toLocaleString()}</p>
-            <p><strong>Poverty Incidence:</strong> <span class="stat-highlight">${data.poverty_incidence}%</span></p>
-            <p><strong>Major Industries:</strong></p>
-            <ul>
-                ${data.major_industries.map(industry => `<li>${industry}</li>`).join('')}
-            </ul>
+            <h3 style="margin-bottom: 1.5rem;">Economic Overview for ${data.city}</h3>
+            <div class="info-grid">
+                ${createCard('💰', 'GDP per Capita', `₱${data.gdp_per_capita.toLocaleString()}`)}
+                ${createCard('💼', 'Employment Rate', `${data.employment_rate}%`, true)}
+                ${createCard('💵', 'Median Monthly Income', `₱${data.median_income.toLocaleString()}`)}
+                ${createCard('📉', 'Poverty Incidence', `${data.poverty_incidence}%`, true)}
+                ${createCard('🏭', 'Major Industries', data.major_industries.join(', '))}
+            </div>
 
-            <div style="margin-top: 2rem;">
+            <div style="margin-top: 3rem;">
                 <!-- Economic Graph -->
                 <div style="width: 100%; max-width: 600px; margin: 0 auto;">
                     <div class="graph-container" style="height: 100px;">
@@ -490,175 +566,219 @@ function renderEconomicData(data) {
     showSuccess('economicData', economicHTML);
 }
 
-// Render traffic data
+/**
+ * Builds HTML showing current traffic conditions, routes status, and recent incidents,
+ * then inserts the result into the corresponding DOM element.
+ * 
+ * @param {Object} data - The traffic data object.
+ */
 function renderTrafficData(data) {
     if (!data) return;
 
     const trafficHTML = `
         <div class="traffic-info">
-            <p><strong>City:</strong> ${data.city}</p>
-            <p><strong>Last Updated:</strong> ${data.last_updated}</p>
-            <p><strong>Overall Conditions:</strong> ${data.traffic_conditions.overall}</p>
-            <p><strong>Congestion Level:</strong> ${data.traffic_conditions.congestion_level}</p>
-            <p><strong>Average Speed:</strong> ${data.traffic_conditions.average_speed}</p>
+            <h3 style="margin-bottom: 1.5rem;">Traffic Conditions in ${data.city} (Updated: ${data.last_updated})</h3>
+            <div class="info-grid">
+                ${createCard('🚗', 'Overall Conditions', data.traffic_conditions.overall)}
+                ${createCard('🚦', 'Congestion Level', data.traffic_conditions.congestion_level)}
+                ${createCard('⏱️', 'Average Speed', data.traffic_conditions.average_speed)}
+            </div>
             
-            <h3>Major Routes:</h3>
-            <ul>
-                ${data.major_routes.map(route => 
-                    `<li><strong>${route.route}:</strong> ${route.status} (${route.delay})</li>`
-                ).join('')}
-            </ul>
+            <h3 style="margin-top: 2rem; margin-bottom: 1rem;">Major Routes:</h3>
+            <div class="info-grid">
+                ${data.major_routes.map(route => createCard('🛣️', route.route, `${route.status} (${route.delay})`)).join('')}
+            </div>
             
-            <h3>Current Incidents:</h3>
-            <ul>
-                ${data.incidents.map(incident => 
-                    `<li><strong>${incident.location}:</strong> ${incident.description} (${incident.time})</li>`
-                ).join('')}
-            </ul>
+            <h3 style="margin-top: 2rem; margin-bottom: 1rem;">Current Incidents:</h3>
+            <div class="info-grid">
+                ${data.incidents.map(incident => createCard('⚠️', incident.location, `${incident.description} (${incident.time})`)).join('')}
+            </div>
         </div>
     `;
 
     showSuccess('trafficData', trafficHTML);
 }
 
-// Render social media data
+/**
+ * Generates an HTML view for the social media data, displaying the most recent
+ * posts and their statistics, and places it in the DOM.
+ * 
+ * @param {Object} data - The social media data object.
+ */
 function renderSocialData(data) {
     if (!data) return;
 
     const socialHTML = `
         <div class="social-info">
-            <p><strong>Page:</strong> ${data.page}</p>
-            ${data.posts.map(post => `
-                <div class="social-post">
-                    <h3>Post ${post.id}</h3>
-                    <p>${post.message}</p>
-                    <div class="post-meta">
-                        <span>⏰ ${post.time}</span>
-                        <span>👍 ${post.reactions} reactions</span>
-                        <span>💬 ${post.comments} comments</span>
+            <h3 style="margin-bottom: 1.5rem;">Official Updates from ${data.page}</h3>
+            <div class="info-grid" style="grid-template-columns: 1fr;">
+                ${data.posts.map(post => `
+                    <div class="social-post">
+                        <h3>Post ${post.id}</h3>
+                        <p>${post.message}</p>
+                        <div class="post-meta">
+                            <span>⏰ ${post.time}</span>
+                            <span style="margin-left: 1rem;">👍 ${post.reactions} reactions</span>
+                            <span style="margin-left: 1rem;">💬 ${post.comments} comments</span>
+                        </div>
                     </div>
-                </div>
-            `).join('')}
+                `).join('')}
+            </div>
         </div>
     `;
 
     showSuccess('socialData', socialHTML);
 }
 
-// Render health data
+/**
+ * Formats health and medical statistics as HTML and renders it to the screen.
+ * 
+ * @param {Object} data - The health data object.
+ */
 function renderHealthData(data) {
     if (!data) return;
 
     const healthHTML = `
         <div class="health-info">
-            <p><strong>City:</strong> ${data.city}</p>
-            <p><strong>Hospitals:</strong> ${data.hospitals}</p>
-            <p><strong>Health Centers:</strong> ${data.health_centers}</p>
-            <p><strong>Barangay Health Stations:</strong> ${data.barangay_health_stations}</p>
-            <p><strong>Doctors per 1000 people:</strong> ${data.doctors_per_1000}</p>
-            <p><strong>Nurses per 1000 people:</strong> ${data.nurses_per_1000}</p>
-            <p><strong>Hospital Beds per 1000 people:</strong> ${data.hospital_beds_per_1000}</p>
-            <p><strong>Vaccination Rate:</strong> ${data.vaccination_rate}%</p>
-            <p><strong>Maternal Mortality Rate:</strong> ${data.maternal_mortality_rate} per 100,000 live births</p>
-            <p><strong>Infant Mortality Rate:</strong> ${data.infant_mortality_rate} per 1,000 live births</p>
-            <p><strong>PhilHealth Coverage:</strong> ${data.philhealth_coverage}%</p>
+            <h3 style="margin-bottom: 1.5rem;">Health Services in ${data.city}</h3>
+            <div class="info-grid">
+                ${createCard('🏥', 'Hospitals', data.hospitals)}
+                ${createCard('⚕️', 'Health Centers', data.health_centers)}
+                ${createCard('🩺', 'Barangay Health Stations', data.barangay_health_stations)}
+                ${createCard('👩‍⚕️', 'Doctors per 1000 people', data.doctors_per_1000)}
+                ${createCard('💉', 'Nurses per 1000 people', data.nurses_per_1000)}
+                ${createCard('🛏️', 'Hospital Beds per 1000 people', data.hospital_beds_per_1000)}
+                ${createCard('🛡️', 'Vaccination Rate', `${data.vaccination_rate}%`)}
+                ${createCard('📉', 'Maternal Mortality Rate', `${data.maternal_mortality_rate} per 100k`, true)}
+                ${createCard('📉', 'Infant Mortality Rate', `${data.infant_mortality_rate} per 1k`, true)}
+                ${createCard('💳', 'PhilHealth Coverage', `${data.philhealth_coverage}%`)}
+            </div>
         </div>
     `;
 
     showSuccess('healthData', healthHTML);
 }
 
-// Render education data
+/**
+ * Prepares and renders the education statistics including school types and enrollment metrics.
+ * 
+ * @param {Object} data - The education data object.
+ */
 function renderEducationData(data) {
     if (!data) return;
 
     const educationHTML = `
         <div class="education-info">
-            <p><strong>City:</strong> ${data.city}</p>
-            <p><strong>Public Elementary Schools:</strong> ${data.public_schools.elementary}</p>
-            <p><strong>Public High Schools:</strong> ${data.public_schools.high_school}</p>
-            <p><strong>Public Senior High Schools:</strong> ${data.public_schools.senior_high}</p>
-            <p><strong>Private Elementary Schools:</strong> ${data.private_schools.elementary}</p>
-            <p><strong>Private High Schools:</strong> ${data.private_schools.high_school}</p>
-            <p><strong>Private Senior High Schools:</strong> ${data.private_schools.senior_high}</p>
-            <p><strong>Colleges:</strong> ${data.private_schools.colleges}</p>
-            <p><strong>Total Enrollment:</strong> ${data.total_enrollment}</p>
-            <p><strong>Literacy Rate:</strong> ${data.literacy_rate}%</p>
-            <p><strong>Teacher-Student Ratio:</strong> ${data.teacher_student_ratio}</p>
-            <p><strong>Graduation Rate:</strong> ${data.graduation_rate}%</p>
-            <p><strong>Schools with Internet:</strong> ${data.schools_with_internet}%</p>
+            <h3 style="margin-bottom: 1.5rem;">Education Statistics for ${data.city}</h3>
+            <div class="info-grid">
+                ${createCard('🏫', 'Public Elementary Schools', data.public_schools.elementary)}
+                ${createCard('🏫', 'Public High Schools', data.public_schools.high_school)}
+                ${createCard('🏫', 'Public Senior High Schools', data.public_schools.senior_high)}
+                ${createCard('🏢', 'Private Elementary Schools', data.private_schools.elementary)}
+                ${createCard('🏢', 'Private High Schools', data.private_schools.high_school)}
+                ${createCard('🏢', 'Private Senior High Schools', data.private_schools.senior_high)}
+                ${createCard('🎓', 'Colleges', data.private_schools.colleges)}
+                ${createCard('🎒', 'Total Enrollment', data.total_enrollment.toLocaleString())}
+                ${createCard('📖', 'Literacy Rate', `${data.literacy_rate}%`)}
+                ${createCard('👩‍🏫', 'Teacher-Student Ratio', data.teacher_student_ratio)}
+                ${createCard('📜', 'Graduation Rate', `${data.graduation_rate}%`)}
+                ${createCard('🌐', 'Schools with Internet', `${data.schools_with_internet}%`)}
+            </div>
         </div>
     `;
 
     showSuccess('educationData', educationHTML);
 }
 
-// Render safety data
+/**
+ * Shows the safety and security data by assembling its HTML markup and updating the DOM element.
+ * 
+ * @param {Object} data - The safety data object.
+ */
 function renderSafetyData(data) {
     if (!data) return;
 
     const safetyHTML = `
         <div class="safety-info">
-            <p><strong>City:</strong> ${data.city}</p>
-            <p><strong>Crime Rate:</strong> ${data.crime_rate} per 100,000 population</p>
-            <p><strong>Crime Solve Rate:</strong> ${data.crime_solve_rate}%</p>
-            <p><strong>Police Stations:</strong> ${data.police_stations}</p>
-            <p><strong>Fire Stations:</strong> ${data.fire_stations}</p>
-            <p><strong>Police Personnel:</strong> ${data.police_personnel}</p>
-            <p><strong>Fire Personnel:</strong> ${data.fire_personnel}</p>
-            <p><strong>Average Response Time:</strong> ${data.average_response_time}</p>
+            <h3 style="margin-bottom: 1.5rem;">Public Safety in ${data.city}</h3>
+            <div class="info-grid">
+                ${createCard('🚨', 'Crime Rate', `${data.crime_rate} per 100k`)}
+                ${createCard('✅', 'Crime Solve Rate', `${data.crime_solve_rate}%`)}
+                ${createCard('🚓', 'Police Stations', data.police_stations)}
+                ${createCard('🚒', 'Fire Stations', data.fire_stations)}
+                ${createCard('👮', 'Police Personnel', data.police_personnel)}
+                ${createCard('👨‍🚒', 'Fire Personnel', data.fire_personnel)}
+                ${createCard('⏱️', 'Average Response Time', data.average_response_time)}
+            </div>
             
-            <h3>Major Crimes:</h3>
-            <ul>
-                ${data.major_crimes.map(crime => 
-                    `<li><strong>${crime.type}:</strong> ${crime.count} cases (${crime.trend} trend)</li>`
-                ).join('')}
-            </ul>
+            <h3 style="margin-top: 2rem; margin-bottom: 1rem;">Major Crimes:</h3>
+            <div class="info-grid">
+                ${data.major_crimes.map(crime => createCard('⚠️', crime.type, `${crime.count} cases (${crime.trend})`)).join('')}
+            </div>
             
-            <h3>Traffic Accidents:</h3>
-            <p><strong>Total:</strong> ${data.traffic_accidents.total}</p>
-            <p><strong>Fatalities:</strong> ${data.traffic_accidents.fatalities}</p>
-            <p><strong>Injuries:</strong> ${data.traffic_accidents.injuries}</p>
+            <h3 style="margin-top: 2rem; margin-bottom: 1rem;">Traffic Accidents:</h3>
+            <div class="info-grid">
+                ${createCard('💥', 'Total', data.traffic_accidents.total)}
+                ${createCard('💀', 'Fatalities', data.traffic_accidents.fatalities)}
+                ${createCard('🤕', 'Injuries', data.traffic_accidents.injuries)}
+            </div>
         </div>
     `;
 
     showSuccess('safetyData', safetyHTML);
 }
 
-// Render environment data
+/**
+ * Creates HTML from environmental metrics such as air quality and tree cover percentage,
+ * and updates the corresponding panel in the DOM.
+ * 
+ * @param {Object} data - The environmental data object.
+ */
 function renderEnvironmentData(data) {
     if (!data) return;
 
     const environmentHTML = `
         <div class="environment-info">
-            <p><strong>City:</strong> ${data.city}</p>
-            <p><strong>Air Quality Index:</strong> ${data.air_quality_index} (Good)</p>
-            <p><strong>Water Quality Rating:</strong> ${data.water_quality_rating} (Good)</p>
-            <p><strong>Green Space per Capita:</strong> ${data.green_space_per_capita} sq m per person</p>
-            <p><strong>Parks and Recreation Areas:</strong> ${data.parks_and_recreation}</p>
-            <p><strong>Waste Diversion Rate:</strong> ${data.waste_diversion_rate}%</p>
-            <p><strong>Recycling Rate:</strong> ${data.recycling_rate}%</p>
-            <p><strong>Tree Cover Percentage:</strong> ${data.tree_cover_percentage}%</p>
-            <p><strong>Renewable Energy Usage:</strong> ${data.renewable_energy_usage}%</p>
-            <p><strong>Flood Prone Areas:</strong> ${data.flood_prone_areas}% of city area</p>
+            <h3 style="margin-bottom: 1.5rem;">Environmental Data for ${data.city}</h3>
+            <div class="info-grid">
+                ${createCard('🌬️', 'Air Quality Index', `${data.air_quality_index} (Good)`)}
+                ${createCard('🚰', 'Water Quality Rating', data.water_quality_rating)}
+                ${createCard('🌳', 'Green Space per Capita', `${data.green_space_per_capita} sq m`)}
+                ${createCard('🏞️', 'Parks and Recreation Areas', data.parks_and_recreation)}
+                ${createCard('♻️', 'Waste Diversion Rate', `${data.waste_diversion_rate}%`)}
+                ${createCard('🔄', 'Recycling Rate', `${data.recycling_rate}%`)}
+                ${createCard('🌲', 'Tree Cover Percentage', `${data.tree_cover_percentage}%`)}
+                ${createCard('☀️', 'Renewable Energy Usage', `${data.renewable_energy_usage}%`)}
+                ${createCard('🌊', 'Flood Prone Areas', `${data.flood_prone_areas}%`)}
+            </div>
             
-            <h3>Environmental Programs:</h3>
-            <ul>
-                ${data.environmental_programs.map(program => `<li>${program}</li>`).join('')}
-            </ul>
+            <h3 style="margin-top: 2rem; margin-bottom: 1rem;">Environmental Programs:</h3>
+            <div class="info-grid" style="grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));">
+                ${data.environmental_programs.map(program => createCard('🌱', 'Program', program)).join('')}
+            </div>
         </div>
     `;
 
     showSuccess('environmentData', environmentHTML);
 }
 
-// Update last updated timestamp
+/**
+ * Updates the 'last updated' timestamp shown on the dashboard to the current local time.
+ */
 function updateLastUpdated() {
     const now = new Date();
-    document.getElementById('lastUpdated').textContent = now.toLocaleString();
+    const lastUpdatedElement = document.getElementById('lastUpdated');
+    if (lastUpdatedElement) {
+        lastUpdatedElement.textContent = now.toLocaleString();
+    }
 }
 
-// Main function to load all data
+/**
+ * Coordinates fetching and rendering for all dashboard data components concurrently.
+ * Re-displays all data panels showing latest updates for a given city.
+ * 
+ * @param {string} [city='San Jose Del Monte'] - The city name for which the dashboard is loaded.
+ */
 async function loadAllData(city = 'San Jose Del Monte') {
     try {
         // Update last updated timestamp
@@ -694,16 +814,7 @@ async function loadAllData(city = 'San Jose Del Monte') {
     }
 }
 
-// Event listener for form submission
-document.getElementById('cityForm').addEventListener('submit', function(e) {
-    e.preventDefault();
-    const cityInput = document.getElementById('cityInput').value.trim();
-    if (cityInput) {
-        loadAllData(cityInput);
-    } else {
-        alert('Please enter a city name');
-    }
-});
+// Event listener for form submission is removed since the search form is removed
 
 // Tab switching functionality, initial load, and auto-refresh
 document.addEventListener('DOMContentLoaded', function() {
