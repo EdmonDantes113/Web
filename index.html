@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>San Jose Del Monte City Dashboard</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <header>
+        <div class="header-content">
+            <img src="https://csjdm.gov.ph/wp-content/uploads/2020/09/cropped-sjdm-seal-1.png" alt="San Jose Del Monte City Logo" class="city-logo">
+            <div>
+                <h1>San Jose Del Monte City Dashboard</h1>
+                <p>Philippines - Real-time City Data</p>
+            </div>
+        </div>
+    </header>
+
+    <main>
+        <!-- Search Form -->
+        <section class="search-section">
+            <form id="cityForm">
+                <label for="cityInput">Search City:</label>
+                <input type="text" id="cityInput" value="San Jose Del Monte" placeholder="Enter city name">
+                <button type="submit">Load Data</button>
+            </form>
+        </section>
+
+       <!-- Tab Navigation -->
+        <div class="tab-container">
+            <div class="tab-header">
+                <button class="tab-btn active" data-tab="weather">Weather Information</button>
+                <button class="tab-btn" data-tab="census">Population & Census Data</button>
+                <button class="tab-btn" data-tab="economic">Economic Indicators</button>
+                <button class="tab-btn" data-tab="traffic">Traffic Information</button>
+                <button class="tab-btn" data-tab="social">Official Updates</button>
+                <button class="tab-btn" data-tab="health">Health Services</button>
+                <button class="tab-btn" data-tab="education">Education Statistics</button>
+                <button class="tab-btn" data-tab="safety">Public Safety</button>
+                <button class="tab-btn" data-tab="environment">Environment & Sustainability</button>
+            </div>
+            <div class="tab-content">
+                <!-- Weather Tab -->
+                <div class="tab-pane active" id="weatherTab">
+                    <div id="weatherData" class="data-content">
+                        <p>Loading weather data...</p>
+                    </div>
+                </div>
+
+                <!-- Census Tab -->
+                <div class="tab-pane" id="censusTab">
+                    <div id="censusData" class="data-content">
+                        <p>Loading census data...</p>
+                    </div>
+                </div>
+
+                <!-- Economic Tab -->
+                <div class="tab-pane" id="economicTab">
+                    <div id="economicData" class="data-content">
+                        <p>Loading economic data...</p>
+                    </div>
+                </div>
+
+                <!-- Traffic Tab -->
+                <div class="tab-pane" id="trafficTab">
+                    <div id="trafficData" class="data-content">
+                        <p>Loading traffic data...</p>
+                    </div>
+                </div>
+
+                <!-- Social Media Tab -->
+                <div class="tab-pane" id="socialTab">
+                    <div id="socialData" class="data-content">
+                        <p>Loading social media updates...</p>
+                    </div>
+                </div>
+
+                <!-- Health Services Tab -->
+                <div class="tab-pane" id="healthTab">
+                    <div id="healthData" class="data-content">
+                        <p>Loading health data...</p>
+                    </div>
+                </div>
+
+                <!-- Education Tab -->
+                <div class="tab-pane" id="educationTab">
+                    <div id="educationData" class="data-content">
+                        <p>Loading education data...</p>
+                    </div>
+                </div>
+
+                <!-- Public Safety Tab -->
+                <div class="tab-pane" id="safetyTab">
+                    <div id="safetyData" class="data-content">
+                        <p>Loading safety data...</p>
+                    </div>
+                </div>
+
+                <!-- Environment Tab -->
+                <div class="tab-pane" id="environmentTab">
+                    <div id="environmentData" class="data-content">
+                        <p>Loading environment data...</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <footer>
+        <p>Data sourced from public APIs • Last updated: <span id="lastUpdated"></span></p>
+    </footer>
+
+    <script src="script.js"></script>
+</body>
+</html>

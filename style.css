@@ -1,0 +1,452 @@
+/* Reset and base styles */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    line-height: 1.6;
+    color: #2D3436;
+    background-color: #FFFFFF;
+}
+
+/* San Jose Del Monte Color Scheme */
+:root {
+    --sjdm-pink: #FF6B9D;
+    --sjdm-orange: #FF9F1C;
+    --sjdm-white: #FFFFFF;
+    --sjdm-dark: #2D3436;
+    --sjdm-light: #F8F9FA;
+}
+
+header {
+    display: flex;
+    align-items: center;
+    background: linear-gradient(135deg, var(--sjdm-pink), var(--sjdm-orange));
+    color: var(--sjdm-white);
+    text-align: left;
+    padding: 2rem 1rem;
+    margin-bottom: 2rem;
+}
+
+.header-content {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    width: 100%;
+    max-width: 1200px;
+    margin: 0 auto;
+}
+
+.city-logo {
+    height: 60px;
+    width: auto;
+    flex-shrink: 0;
+}
+
+header h1 {
+    font-size: 2.5rem;
+    margin-bottom: 0.5rem;
+    text-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    margin: 0;
+}
+
+header p {
+    font-size: 1.2rem;
+    opacity: 0.9;
+    margin: 0;
+}
+
+/* Search Form */
+.search-section {
+    background: var(--sjdm-white);
+    padding: 1.5rem;
+    border-radius: 15px;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.08);
+    margin-bottom: 2rem;
+    border: 1px solid rgba(255, 159, 28, 0.2);
+}
+
+#cityForm {
+    display: flex;
+    gap: 1rem;
+    align-items: center;
+    flex-wrap: wrap;
+}
+
+#cityForm label {
+    font-weight: 600;
+    color: var(--sjdm-dark);
+    min-width: 80px;
+}
+
+#cityForm input[type="text"] {
+    padding: 0.75rem 1rem;
+    border: 2px solid var(--sjdm-pink);
+    border-radius: 10px;
+    font-size: 1rem;
+    flex: 1;
+    min-width: 200px;
+    transition: all 0.3s ease;
+}
+
+#cityForm input[type="text"]:focus {
+    outline: none;
+    border-color: var(--sjdm-orange);
+    box-shadow: 0 0 0 3px rgba(255, 107, 157, 0.25);
+}
+
+#cityForm button {
+    padding: 0.75rem 1.5rem;
+    background: var(--sjdm-orange);
+    color: var(--sjdm-white);
+    border: none;
+    border-radius: 10px;
+    cursor: pointer;
+    font-size: 1rem;
+    font-weight: 600;
+    transition: all 0.3s ease;
+    box-shadow: 0 2px 8px rgba(255, 159, 28, 0.3);
+}
+
+#cityForm button:hover {
+    background: #e08e00;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(255, 159, 28, 0.4);
+}
+
+#cityForm button:active {
+    transform: translateY(0);
+}
+
+/* Tab Navigation Styles */
+.tab-container {
+    margin-top: 2rem;
+}
+
+.tab-header {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    margin-bottom: 1.5rem;
+    border-bottom: 2px solid rgba(255, 159, 28, 0.2);
+}
+
+.tab-btn {
+    background: transparent;
+    border: none;
+    padding: 0.75rem 1.5rem;
+    font-size: 1rem;
+    font-weight: 600;
+    color: var(--sjdm-dark);
+    cursor: pointer;
+    position: relative;
+    transition: all 0.3s ease;
+    border-radius: 10px 10px 0 0;
+}
+
+.tab-btn:hover {
+    color: var(--sjdm-pink);
+    background: rgba(255, 107, 157, 0.1);
+}
+
+.tab-btn.active {
+    color: var(--sjdm-white);
+    background: linear-gradient(90deg, var(--sjdm-pink), var(--sjdm-orange));
+    border-bottom: 3px solid var(--sjdm-white);
+}
+
+.tab-content {
+    background: var(--sjdm-white);
+    border-radius: 0 15px 15px 15px;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+    overflow: hidden;
+}
+
+.tab-pane {
+    display: none;
+    padding: 2rem;
+}
+
+.tab-pane.active {
+    display: block;
+    animation: fadeIn 0.5s ease;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+/* Dashboard Grid */
+.dashboard-grid {
+    display: none;
+}
+
+/* Cards */
+.card {
+    display: none;
+}
+
+/* Data content adjustments */
+.data-content {
+    padding: 0;
+}
+
+.data-content p {
+    margin-bottom: 1.25rem;
+    line-height: 1.6;
+    color: #34495e;
+}
+
+.data-content p strong {
+    color: var(--sjdm-dark);
+}
+
+.loading {
+    text-align: center;
+    color: #7f8c8d;
+    font-style: italic;
+    padding: 2rem;
+}
+
+.error {
+    color: #e74c3c;
+    background: rgba(231, 76, 60, 0.1);
+    padding: 1rem;
+    border-radius: 10px;
+    margin: 1rem 0;
+    border-left: 4px solid #e74c3c;
+}
+
+.success {
+    color: #27ae60;
+    background: rgba(39, 174, 96, 0.1);
+    padding: 1rem;
+    border-radius: 10px;
+    margin: 1rem 0;
+    border-left: 4px solid #27ae60;
+}
+
+/* Social media posts */
+.social-post {
+    border-bottom: 1px solid rgba(238, 238, 238, 0.5);
+    padding: 1.25rem 0;
+}
+
+.social-post:last-child {
+    border-bottom: none;
+}
+
+.social-post h3 {
+    color: var(--sjdm-dark);
+    margin-bottom: 0.75rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.social-post h3::before {
+    content: "📢";
+    font-size: 1rem;
+}
+
+.social-post p {
+    color: #555;
+    font-size: 0.9rem;
+    margin-bottom: 0.75rem;
+    line-height: 1.4;
+}
+
+.social-post time {
+    display: block;
+    color: #95a5a6;
+    font-size: 0.8rem;
+    margin-top: 0.5rem;
+    font-style: italic;
+}
+
+/* Stats highlights */
+.stat-highlight {
+    display: inline-block;
+    background: linear-gradient(135deg, var(--sjdm-pink), var(--sjdm-orange));
+    color: white;
+    padding: 0.25rem 0.75rem;
+    border-radius: 20px;
+    font-size: 0.85rem;
+    font-weight: 600;
+    margin: 0.25rem;
+}
+
+/* Enhanced Weather Forecast Styles */
+.weather-info {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+}
+
+.current-weather h3 {
+    color: var(--sjdm-dark);
+    margin-bottom: 0.5rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.current-weather h3::before {
+    content: "☀️";
+    font-size: 1.2rem;
+}
+
+.current-weather p {
+    margin-bottom: 0.75rem;
+    color: #555;
+}
+
+.forecast-title h3 {
+    color: var(--sjdm-dark);
+    margin-bottom: 1rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.forecast-title h3::before {
+    content: "📅";
+    font-size: 1.2rem;
+}
+
+.forecast-container {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(80px, 1fr));
+    gap: 1rem;
+    margin: 1rem 0;
+}
+
+.forecast-day {
+    background: linear-gradient(135deg, rgba(255, 107, 157, 0.1), rgba(255, 159, 28, 0.1));
+    border-radius: 12px;
+    padding: 1rem;
+    text-align: center;
+    border: 1px solid rgba(255, 159, 28, 0.2);
+    transition: all 0.3s ease;
+}
+
+.forecast-day:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    background: linear-gradient(135deg, rgba(255, 107, 157, 0.15), rgba(255, 159, 28, 0.15));
+}
+
+.forecast-day-name {
+    font-weight: 600;
+    margin-bottom: 0.5rem;
+    color: var(--sjdm-dark);
+    font-size: 0.9rem;
+}
+
+.forecast-icon {
+    font-size: 1.8rem;
+    margin-bottom: 0.5rem;
+}
+
+.forecast-temp {
+    font-size: 1.5rem;
+    font-weight: bold;
+    color: var(--sjdm-pink);
+    margin-bottom: 0.5rem;
+}
+
+.forecast-desc {
+    font-size: 0.85rem;
+    color: #666;
+    font-style: italic;
+}
+
+/* Footer */
+footer {
+    text-align: center;
+    padding: 2.5rem;
+    color: #7f8c8d;
+    font-size: 0.9rem;
+    border-top: 1px solid rgba(238, 238, 238, 0.5);
+    margin-top: 2rem;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    header h1 {
+        font-size: 2rem;
+    }
+    
+    header p {
+        font-size: 1rem;
+    }
+    
+    #cityForm {
+        flex-direction: column;
+        align-items: stretch;
+    }
+    
+    #cityForm input[type="text"] {
+        min-width: auto;
+    }
+    
+    .dashboard-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .card h2 {
+        font-size: 1.25rem;
+        padding: 1rem;
+    }
+
+    .tab-header {
+        flex-direction: column;
+    }
+
+    .tab-btn {
+        border-radius: 10px;
+        margin-bottom: 0.5rem;
+    }
+
+    .tab-btn.active {
+        border-radius: 10px;
+        border-bottom: none;
+        border-right: 3px solid var(--sjdm-white);
+    }
+
+    .tab-content {
+        border-radius: 15px;
+    }
+}
+
+@media (max-width: 480px) {
+    header {
+        padding: 1.5rem 1rem;
+    }
+    
+    header h1 {
+        font-size: 1.8rem;
+    }
+    
+    .card h2 {
+        font-size: 1.15rem;
+        padding: 0.85rem;
+    }
+    
+    .data-content {
+        padding: 1.25rem;
+    }
+
+    .tab-btn {
+        padding: 0.5rem 1rem;
+        font-size: 0.9rem;
+    }
+
+    .tab-pane {
+        padding: 1.5rem;
+    }
+}
