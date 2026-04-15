@@ -89,6 +89,7 @@ const CITY_CONFIG = {
 const ECONOMIC_MEDIAN_INCOME_ESTIMATE_FACTOR = 0.45;
 const MONTHS_PER_YEAR = 12;
 const ECONOMIC_POVERTY_FALLBACK = 8.5; // Legacy dashboard baseline (prior static poverty incidence value).
+const DEFAULT_COUNTRY_CODE = 'PH';
 
 function getCityConfig(city) {
     return CITY_CONFIG[city] || CITY_CONFIG['San Jose Del Monte'];
@@ -253,7 +254,7 @@ async function fetchWeatherData(city) {
         return {
             name: city,
             city,
-            sys: { country: 'PH' },
+            sys: { country: DEFAULT_COUNTRY_CODE },
             main: {
                 temp: current.temperature,
                 feels_like: null,
@@ -797,7 +798,7 @@ function renderWeatherData(data) {
                     <p><strong>Condition:</strong> ${data.weather[0].description}</p>
                     <p><strong>Humidity:</strong> ${data.main.humidity !== null ? `${data.main.humidity}%` : 'Unavailable'}</p>
                     <p><strong>Pressure:</strong> ${data.main.pressure !== null ? `${data.main.pressure} hPa` : 'Unavailable'}</p>
-                    <p><strong>Wind Speed:</strong> ${data.wind.speed !== null && data.wind.speed !== undefined ? `${data.wind.speed} km/h` : 'Unavailable'}</p>
+                    <p><strong>Wind Speed:</strong> ${data.wind.speed != null ? `${data.wind.speed} km/h` : 'Unavailable'}</p>
                 </div>
                 <div style="flex:1;min-width:180px;">
                     <canvas id="weatherChart" width="180" height="120"></canvas>
@@ -909,7 +910,10 @@ function renderSocialData(data) {
 
 function updateSocialIframeForCity(city) {
     const iframe = document.getElementById('facebookTimelineIframe');
-    if (!iframe) return;
+    if (!iframe) {
+        console.warn('Facebook timeline iframe not found for city switch:', safeLogValue(city));
+        return;
+    }
     const cityConfig = getCityConfig(city);
     iframe.src = buildFacebookPluginUrl(cityConfig.facebookPageUrl);
 }
