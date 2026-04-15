@@ -25,8 +25,9 @@ const CITY_CONFIG = {
         localityType: 'City',
         region: 'Central Luzon (Region III)',
         province: 'Bulacan',
-        weatherQuery: 'San Jose Del Monte, Bulacan, Philippines',
-        facebookPageUrl: 'https://www.facebook.com/cityofsanjosedelmonte',
+        latitude: 14.8147,
+        longitude: 121.0490,
+        facebookPageUrl: 'https://www.facebook.com/CityGovtOfSJDM',
         sources: {
             census: [
                 'https://www.psa.gov.ph/statistics/census/population-and-housing',
@@ -54,8 +55,9 @@ const CITY_CONFIG = {
         localityType: 'Municipality',
         region: 'Central Luzon (Region III)',
         province: 'Bulacan',
-        weatherQuery: 'Marilao, Bulacan, Philippines',
-        facebookPageUrl: 'https://www.facebook.com/municipalityofmarilao',
+        latitude: 14.7570,
+        longitude: 120.9455,
+        facebookPageUrl: 'https://www.facebook.com/MarilaoLGU',
         sources: {
             census: [
                 'https://www.psa.gov.ph/statistics/census/population-and-housing',
@@ -135,6 +137,20 @@ function toSafeFacebookPluginUrl(url) {
         return 'https://www.facebook.com/plugins/page.php?href=https%3A%2F%2Fwww.facebook.com%2F';
     }
     return safeUrl;
+}
+
+function buildFacebookPluginUrl(pageUrl) {
+    const pluginParams = new URLSearchParams({
+        href: toSafeFacebookPageUrl(pageUrl),
+        tabs: 'timeline',
+        width: '500',
+        height: '700',
+        small_header: 'false',
+        adapt_container_width: 'true',
+        hide_cover: 'false',
+        show_facepile: 'true'
+    });
+    return toSafeFacebookPluginUrl(`https://www.facebook.com/plugins/page.php?${pluginParams.toString()}`);
 }
 
 function setUnavailableState(elementId, label, reason) {
@@ -218,51 +234,37 @@ async function fetchWeatherData(city) {
     try {
         showLoading('weatherData');
         const cityConfig = getCityConfig(city);
-        const geocodeParams = new URLSearchParams({
-            name: cityConfig.weatherQuery,
-            count: 1,
-            language: 'en',
-            format: 'json'
-        });
-        const geocodeResponse = await fetch(`${API_CONFIG.weather.geocodeUrl}?${geocodeParams.toString()}`);
-        if (!geocodeResponse.ok) throw new Error(`Weather geocoding API error: ${geocodeResponse.status}`);
-        const geocodeData = await geocodeResponse.json();
-        const location = geocodeData?.results?.[0];
-
-        if (!location) throw new Error(`No geocoding result for city: ${city}`);
-
         const weatherParams = new URLSearchParams({
-            latitude: location.latitude,
-            longitude: location.longitude,
-            current: 'temperature_2m,apparent_temperature,relative_humidity_2m,pressure_msl,wind_speed_10m,weather_code,is_day',
-            timezone: 'auto'
+            latitude: String(cityConfig.latitude),
+            longitude: String(cityConfig.longitude),
+            current_weather: 'true'
         });
         const weatherResponse = await fetch(`${API_CONFIG.weather.url}?${weatherParams.toString()}`);
         if (!weatherResponse.ok) throw new Error(`Weather API error: ${weatherResponse.status}`);
         const weatherData = await weatherResponse.json();
-        const current = weatherData?.current;
+        const current = weatherData?.current_weather;
 
-        if (!current) throw new Error('Weather API response missing current weather data');
+        if (!current) throw new Error('Weather API response missing current_weather data');
 
-        const descriptor = getWeatherDescriptor(current.weather_code);
+        const descriptor = getWeatherDescriptor(current.weathercode);
         const iconSuffix = current.is_day ? 'd' : 'n';
 
         return {
-            name: location.name || city,
+            name: city,
             city,
-            sys: { country: location.country_code || 'PH' },
+            sys: { country: 'PH' },
             main: {
-                temp: current.temperature_2m,
-                feels_like: current.apparent_temperature,
-                humidity: current.relative_humidity_2m,
-                pressure: current.pressure_msl
+                temp: current.temperature,
+                feels_like: null,
+                humidity: null,
+                pressure: null
             },
             weather: [{
                 main: descriptor.main,
                 description: descriptor.description,
                 icon: `${descriptor.icon}${iconSuffix}`
             }],
-            wind: { speed: current.wind_speed_10m },
+            wind: { speed: current.windspeed },
             dt: new Date(current.time).getTime()
         };
     } catch (error) {
@@ -438,20 +440,10 @@ async function fetchSocialData(city) {
         showLoading('socialData');
         const cityConfig = getCityConfig(city);
         const pageUrl = toSafeFacebookPageUrl(cityConfig.facebookPageUrl);
-        const pluginParams = new URLSearchParams({
-            href: pageUrl,
-            tabs: 'timeline',
-            width: '500',
-            height: '700',
-            small_header: 'false',
-            adapt_container_width: 'true',
-            hide_cover: 'false',
-            show_facepile: 'true'
-        });
         return {
             city,
             page_url: pageUrl,
-            page_plugin_url: toSafeFacebookPluginUrl(`https://www.facebook.com/plugins/page.php?${pluginParams.toString()}`)
+            page_plugin_url: buildFacebookPluginUrl(pageUrl)
         };
     } catch (error) {
         showError('socialData', 'Failed to load social media data');
@@ -688,6 +680,7 @@ document.addEventListener('DOMContentLoaded', function() {
             tabDataCache = {};
             updateDashboardTitle(currentCity);
             await loadAllData(currentCity);
+            updateSocialIframeForCity(currentCity);
             setActiveTab(activeTab);
         });
     }
@@ -799,11 +792,11 @@ function renderWeatherData(data) {
                     <div style="font-size:1.1rem;font-weight:600;">${data.weather[0].main}</div>
                 </div>
                 <div style="flex:1;min-width:180px;">
-                    <p><strong>Temperature:</strong> ${data.main.temp}°C (feels like ${data.main.feels_like}°C)</p>
+                    <p><strong>Temperature:</strong> ${data.main.temp}°C${data.main.feels_like !== null ? ` (feels like ${data.main.feels_like}°C)` : ''}</p>
                     <p><strong>Condition:</strong> ${data.weather[0].description}</p>
-                    <p><strong>Humidity:</strong> ${data.main.humidity}%</p>
-                    <p><strong>Pressure:</strong> ${data.main.pressure} hPa</p>
-                    <p><strong>Wind Speed:</strong> ${data.wind.speed} m/s</p>
+                    <p><strong>Humidity:</strong> ${data.main.humidity !== null ? `${data.main.humidity}%` : 'Unavailable'}</p>
+                    <p><strong>Pressure:</strong> ${data.main.pressure !== null ? `${data.main.pressure} hPa` : 'Unavailable'}</p>
+                    <p><strong>Wind Speed:</strong> ${data.wind.speed !== null && data.wind.speed !== undefined ? `${data.wind.speed} km/h` : 'Unavailable'}</p>
                 </div>
                 <div style="flex:1;min-width:180px;">
                     <canvas id="weatherChart" width="180" height="120"></canvas>
@@ -900,14 +893,24 @@ function renderSocialData(data) {
             <div class="data-content social-embed-wrap">
                 <p><strong>Page URL:</strong> <a href="${toSafeUrl(data.page_url)}" target="_blank" rel="noopener noreferrer">${escapeHtml(data.page_url)}</a></p>
                 <iframe
+                    id="facebookTimelineIframe"
                     title="Facebook Page Plugin - ${escapeHtml(data.city)}"
                     src="${toSafeFacebookPluginUrl(data.page_plugin_url)}"
+                    width="100%"
+                    height="700"
                     allow="encrypted-media; picture-in-picture; web-share"
                     loading="lazy">
                 </iframe>
             </div>
         </div>
     `;
+}
+
+function updateSocialIframeForCity(city) {
+    const iframe = document.getElementById('facebookTimelineIframe');
+    if (!iframe) return;
+    const cityConfig = getCityConfig(city);
+    iframe.src = buildFacebookPluginUrl(cityConfig.facebookPageUrl);
 }
 
 // Render health data
