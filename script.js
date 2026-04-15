@@ -1,23 +1,21 @@
 // City Data Dashboard - Main JavaScript Functionality
 
-// API Configuration (using mock data and public APIs where possible)
+// API Configuration
 const API_CONFIG = {
-    // OpenWeatherMap would require API key - using mock for demo
     weather: {
-        url: 'https://api.openweathermap.org/data/2.5/weather',
-        params: new URLSearchParams({
-            q: 'San Jose Del Monte,PH',
-            units: 'metric',
-            appid: 'demo_key' // In real app, you'd get a real key
-        })
+        geocodingUrl: 'https://geocoding-api.open-meteo.com/v1/search',
+        forecastUrl: 'https://api.open-meteo.com/v1/forecast'
     },
-    // Using Philippine Statistics API or similar for census data
+    // Example endpoint placeholder
     census: {
-        url: 'https://psa.gov.ph/api/v1/population', // Example endpoint
+        url: 'https://psa.gov.ph/api/v1/population',
     },
-    // Economic indicators - using World Bank or similar
+    // World Bank indicators (country-level)
     economic: {
-        url: 'https://api.worldbank.org/v2/country/PHL/indicator/NY.GDP.MKTP.CD?format=json'
+        gdpPerCapitaUrl: 'https://api.worldbank.org/v2/country/PHL/indicator/NY.GDP.PCAP.CD?format=json&per_page=70',
+        unemploymentUrl: 'https://api.worldbank.org/v2/country/PHL/indicator/SL.UEM.TOTL.ZS?format=json&per_page=70',
+        povertyUrl: 'https://api.worldbank.org/v2/country/PHL/indicator/SI.POV.NAHC?format=json&per_page=70',
+        growthUrl: 'https://api.worldbank.org/v2/country/PHL/indicator/NY.GDP.MKTP.KD.ZG?format=json&per_page=70'
     },
     // Traffic data - using MMDA or similar (mock)
     traffic: {
@@ -92,9 +90,52 @@ function showSuccess(elementId, content) {
     if (element) element.innerHTML = content;
 }
 
+async function fetchJson(url) {
+    const response = await fetch(url);
+    if (!response.ok) {
+        throw new Error(`Request failed: ${response.status}`);
+    }
+    return response.json();
+}
+
+function getLatestWorldBankValue(series) {
+    if (!Array.isArray(series)) return null;
+    const latest = series.find(item => item && item.value !== null && item.value !== undefined);
+    return latest ? latest.value : null;
+}
+
+function mapOpenMeteoCode(code) {
+    const codeMap = {
+        0: { main: 'Clear', description: 'clear sky', icon: '01d' },
+        1: { main: 'Cloudy', description: 'mainly clear', icon: '02d' },
+        2: { main: 'Cloudy', description: 'partly cloudy', icon: '03d' },
+        3: { main: 'Cloudy', description: 'overcast', icon: '04d' },
+        45: { main: 'Mist', description: 'fog', icon: '50d' },
+        48: { main: 'Mist', description: 'depositing rime fog', icon: '50d' },
+        51: { main: 'Drizzle', description: 'light drizzle', icon: '09d' },
+        53: { main: 'Drizzle', description: 'moderate drizzle', icon: '09d' },
+        55: { main: 'Drizzle', description: 'dense drizzle', icon: '09d' },
+        61: { main: 'Rain', description: 'slight rain', icon: '10d' },
+        63: { main: 'Rain', description: 'moderate rain', icon: '10d' },
+        65: { main: 'Rain', description: 'heavy rain', icon: '10d' },
+        80: { main: 'Rain', description: 'rain showers', icon: '10d' },
+        81: { main: 'Rain', description: 'moderate rain showers', icon: '10d' },
+        82: { main: 'Rain', description: 'violent rain showers', icon: '10d' },
+        95: { main: 'Thunderstorm', description: 'thunderstorm', icon: '11d' },
+        96: { main: 'Thunderstorm', description: 'thunderstorm with hail', icon: '11d' },
+        99: { main: 'Thunderstorm', description: 'strong thunderstorm with hail', icon: '11d' }
+    };
+    return codeMap[code] || { main: 'Weather', description: 'unavailable', icon: '02d' };
+}
+
+function formatValue(value, formatter = (val) => val.toLocaleString()) {
+    if (value === null || value === undefined || Number.isNaN(value)) return 'N/A';
+    return formatter(value);
+}
+
 /**
  * Asynchronously fetches and returns weather data for a given city.
- * Currently uses mock data for demonstration purposes.
+ * Uses live Open-Meteo geocoding and forecast APIs.
  * 
  * @param {string} city - The name of the city to fetch weather data for.
  * @returns {Promise<Object|null>} A promise that resolves to the weather data object, or null if it fails.
@@ -102,23 +143,55 @@ function showSuccess(elementId, content) {
 async function fetchWeatherData(city) {
     try {
         showLoading('weatherData');
+        const geocodingParams = new URLSearchParams({
+            name: city,
+            count: '1',
+            language: 'en',
+            format: 'json'
+        });
+        const geocodingData = await fetchJson(`${API_CONFIG.weather.geocodingUrl}?${geocodingParams}`);
+        const location = geocodingData?.results?.[0];
 
-        // For demo purposes, using mock data since we don't have API key
-        // In real implementation, uncomment the fetch below and use real API
+        if (!location) {
+            throw new Error('City location not found');
+        }
 
-        // Mock weather data for San Jose Del Monte
+        const forecastParams = new URLSearchParams({
+            latitude: location.latitude.toString(),
+            longitude: location.longitude.toString(),
+            current: 'temperature_2m,apparent_temperature,relative_humidity_2m,surface_pressure,wind_speed_10m,weather_code',
+            daily: 'weather_code,temperature_2m_max,temperature_2m_min',
+            timezone: 'auto',
+            forecast_days: '5'
+        });
+        const weatherApiData = await fetchJson(`${API_CONFIG.weather.forecastUrl}?${forecastParams}`);
+        const currentCondition = mapOpenMeteoCode(weatherApiData.current.weather_code);
+        const forecastDays = weatherApiData.daily.time.map((date, index) => {
+            const condition = mapOpenMeteoCode(weatherApiData.daily.weather_code[index]);
+            const dayName = index === 0
+                ? 'Today'
+                : new Date(`${date}T00:00:00`).toLocaleDateString('en-US', { weekday: 'short' });
+            return {
+                day: dayName,
+                temp: Math.round((weatherApiData.daily.temperature_2m_max[index] + weatherApiData.daily.temperature_2m_min[index]) / 2),
+                icon: condition.icon,
+                desc: condition.description
+            };
+        });
+
         return {
-            name: "San Jose Del Monte",
-            sys: { country: "PH" },
+            name: location.name || city,
+            sys: { country: location.country_code || 'PH' },
             main: {
-                temp: 28.5,
-                feels_like: 31.2,
-                humidity: 78,
-                pressure: 1013
+                temp: Math.round(weatherApiData.current.temperature_2m),
+                feels_like: Math.round(weatherApiData.current.apparent_temperature),
+                humidity: weatherApiData.current.relative_humidity_2m,
+                pressure: Math.round(weatherApiData.current.surface_pressure)
             },
-            weather: [{ main: "Cloudy", description: "partly cloudy", icon: "02d" }],
-            wind: { speed: 3.5 },
-            dt: Date.now()
+            weather: [{ main: currentCondition.main, description: currentCondition.description, icon: currentCondition.icon }],
+            wind: { speed: weatherApiData.current.wind_speed_10m },
+            dt: Date.now(),
+            forecastDays
         };
     } catch (error) {
         showError('weatherData', 'Failed to load weather data');
@@ -158,30 +231,34 @@ async function fetchCensusData() {
 
 /**
  * Asynchronously fetches economic indicators for the city.
- * Provides mock data for GDP, employment rate, major industries, etc.
+ * Uses live World Bank country-level indicators where available.
  * 
  * @returns {Promise<Object|null>} A promise that resolves to the economic data object, or null on error.
  */
 async function fetchEconomicData() {
     try {
         showLoading('economicData');
+        const [gdpResponse, unemploymentResponse, povertyResponse, growthResponse] = await Promise.all([
+            fetchJson(API_CONFIG.economic.gdpPerCapitaUrl),
+            fetchJson(API_CONFIG.economic.unemploymentUrl),
+            fetchJson(API_CONFIG.economic.povertyUrl),
+            fetchJson(API_CONFIG.economic.growthUrl)
+        ]);
 
-        // Mock economic data
-        // In real implementation, you might use World Bank API, PSA API, etc.
+        const gdpPerCapita = getLatestWorldBankValue(gdpResponse?.[1]);
+        const unemploymentRate = getLatestWorldBankValue(unemploymentResponse?.[1]);
+        const povertyIncidence = getLatestWorldBankValue(povertyResponse?.[1]);
+        const growthRate = getLatestWorldBankValue(growthResponse?.[1]);
+        const employmentRate = unemploymentRate !== null ? Math.max(0, 100 - unemploymentRate) : null;
+
         return {
             city: "San Jose Del Monte",
-            gdp_per_capita: 185000, // PHP
-            employment_rate: 94.2, // %
-            major_industries: [
-                "Manufacturing",
-                "Retail Trade",
-                "Real Estate",
-                "Tourism",
-                "Agriculture"
-            ],
-            poverty_incidence: 8.5, // %
-            median_income: 25000, // PHP monthly
-            growth_rate: 2.8 // Added growth rate to support the graph move
+            gdp_per_capita: gdpPerCapita, // USD, World Bank
+            employment_rate: employmentRate, // %
+            major_industries: [], // No reliable public city-level API available
+            poverty_incidence: povertyIncidence, // %, if available
+            median_income: null, // No reliable public city-level API available
+            growth_rate: growthRate // %
         };
     } catch (error) {
         showError('economicData', 'Failed to load economic data');
@@ -458,14 +535,8 @@ function getWeatherIcon(iconCode) {
  */
 function renderWeatherData(data) {
     if (!data) return;
-    
-    // Create mock forecast data for the next 5 days
-    const forecastDays = [
-        { day: 'Today', temp: data.main.temp, icon: data.weather[0].icon, desc: data.weather[0].description },
-        { day: 'Tomorrow', temp: Math.round(data.main.temp + (Math.random() * 4 - 2)), icon: '03d', desc: 'Partly cloudy' },
-        { day: 'Day 3', temp: Math.round(data.main.temp + (Math.random() * 6 - 3)), icon: '02d', desc: 'Mostly sunny' },
-        { day: 'Day 4', temp: Math.round(data.main.temp + (Math.random() * 5 - 2.5)), icon: '09d', desc: 'Light rain' },
-        { day: 'Day 5', temp: Math.round(data.main.temp + (Math.random() * 3 - 1.5)), icon: '01d', desc: 'Clear sky' }
+    const forecastDays = data.forecastDays || [
+        { day: 'Today', temp: data.main.temp, icon: data.weather[0].icon, desc: data.weather[0].description }
     ];
 
     const weatherHTML = `
@@ -533,26 +604,30 @@ function renderCensusData(data) {
  */
 function renderEconomicData(data) {
     if (!data) return;
+    const safeEmploymentRate = data.employment_rate ?? 0;
+    const safePovertyIncidence = data.poverty_incidence ?? 0;
+    const safeNonPoverty = Math.max(0, 100 - safePovertyIncidence);
+    const hasGraphMetrics = data.employment_rate !== null && data.poverty_incidence !== null;
 
     const economicHTML = `
         <div class="economic-info">
             <h3 style="margin-bottom: 1.5rem;">Economic Overview for ${data.city}</h3>
             <div class="info-grid">
-                ${createCard('💰', 'GDP per Capita', `₱${data.gdp_per_capita.toLocaleString()}`)}
-                ${createCard('💼', 'Employment Rate', `${data.employment_rate}%`, true)}
-                ${createCard('💵', 'Median Monthly Income', `₱${data.median_income.toLocaleString()}`)}
-                ${createCard('📉', 'Poverty Incidence', `${data.poverty_incidence}%`, true)}
-                ${createCard('🏭', 'Major Industries', data.major_industries.join(', '))}
+                ${createCard('💰', 'GDP per Capita (World Bank, USD)', formatValue(data.gdp_per_capita, (value) => `$${Math.round(value).toLocaleString()}`))}
+                ${createCard('💼', 'Employment Rate', formatValue(data.employment_rate, (value) => `${value.toFixed(1)}%`), true)}
+                ${createCard('💵', 'Median Monthly Income', formatValue(data.median_income, (value) => `₱${value.toLocaleString()}`))}
+                ${createCard('📉', 'Poverty Incidence', formatValue(data.poverty_incidence, (value) => `${value.toFixed(1)}%`), true)}
+                ${createCard('🏭', 'Major Industries', data.major_industries.length ? data.major_industries.join(', ') : 'N/A')}
             </div>
 
-            <div style="margin-top: 3rem;">
+            <div style="margin-top: 3rem; ${hasGraphMetrics ? '' : 'display:none;'}">
                 <!-- Economic Graph -->
                 <div style="width: 100%; max-width: 600px; margin: 0 auto;">
                     <div class="graph-container" style="height: 100px;">
                         <div style="display: flex; height: 100%; align-items: flex-end; width: 100%; border-radius: 4px; overflow: hidden; gap: 4px;">
-                            <div class="graph-bar" style="position: relative; width: ${data.employment_rate}%; height: 100%; background: #FF0000;" title="Employment: ${data.employment_rate}%"></div>
-                            <div class="graph-bar" style="position: relative; width: ${100 - data.poverty_incidence}%; height: 100%; background: #FFA500;" title="Non-Poverty: ${100 - data.poverty_incidence}%"></div>
-                            <div class="graph-bar" style="position: relative; width: ${data.poverty_incidence}%; height: 100%; background: #E0E0E0;" title="Poverty: ${data.poverty_incidence}%"></div>
+                            <div class="graph-bar" style="position: relative; width: ${safeEmploymentRate}%; height: 100%; background: #FF0000;" title="Employment: ${safeEmploymentRate}%"></div>
+                            <div class="graph-bar" style="position: relative; width: ${safeNonPoverty}%; height: 100%; background: #FFA500;" title="Non-Poverty: ${safeNonPoverty}%"></div>
+                            <div class="graph-bar" style="position: relative; width: ${safePovertyIncidence}%; height: 100%; background: #E0E0E0;" title="Poverty: ${safePovertyIncidence}%"></div>
                         </div>
                     </div>
                     <div style="text-align: center; margin-top: 0.5rem; font-size: 0.8rem; color: #666;">
