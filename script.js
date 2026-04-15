@@ -2,24 +2,21 @@
 
 // API Configuration (using mock data and public APIs where possible)
 const API_CONFIG = {
-    // OpenWeatherMap v3 (latest, requires API key)
+    // Open-Meteo APIs (free public endpoints)
     weather: {
-        url: 'https://api.openweathermap.org/data/3.0/onecall', // v3 endpoint
-        // Note: You need a real API key for production
-        params: (lat, lon, key) => new URLSearchParams({
-            lat: lat,
-            lon: lon,
-            units: 'metric',
-            appid: key
-        })
+        geocodeUrl: 'https://geocoding-api.open-meteo.com/v1/search',
+        url: 'https://api.open-meteo.com/v1/forecast'
     },
     // Philippine Statistics Authority (PSA) - no public API, fallback to mock
     census: {
         url: 'https://psa.gov.ph/population-census', // No API, fallback to mock
     },
-    // World Bank v2 (latest stable)
+    // World Bank + Exchange Rate API (public endpoints)
     economic: {
-        url: 'https://api.worldbank.org/v2/country/PHL/indicator/NY.GDP.MKTP.CD?format=json'
+        gdpPerCapitaUrl: 'https://api.worldbank.org/v2/country/PHL/indicator/NY.GDP.PCAP.CD?format=json',
+        unemploymentUrl: 'https://api.worldbank.org/v2/country/PHL/indicator/SL.UEM.TOTL.ZS?format=json',
+        povertyUrl: 'https://api.worldbank.org/v2/country/PHL/indicator/SI.POV.NAHC?format=json',
+        usdToPhpUrl: 'https://open.er-api.com/v6/latest/USD'
     },
     // MMDA Traffic API (no public API, fallback to mock)
     traffic: {
@@ -47,6 +44,13 @@ const API_CONFIG = {
     }
 };
 
+// Heuristic: approximates monthly median income as 45% of monthly per-capita GDP output.
+// This preserves the dashboard's prior behavior where income is displayed as a conservative subset
+// of per-capita output (not a statistically exact median-income measure).
+const ECONOMIC_MEDIAN_INCOME_ESTIMATE_FACTOR = 0.45;
+const MONTHS_PER_YEAR = 12;
+const ECONOMIC_POVERTY_FALLBACK = 8.5; // Legacy dashboard baseline (prior static poverty incidence value).
+
 // Utility function to create DOM elements
 function createElement(tag, className, textContent) {
     const element = document.createElement(tag);
@@ -73,33 +77,84 @@ function showSuccess(elementId, content) {
     element.innerHTML = content;
 }
 
+function getWeatherDescriptor(code) {
+    const codeMap = {
+        0: { main: 'Clear', description: 'clear sky', icon: '01' },
+        1: { main: 'Cloudy', description: 'mainly clear', icon: '02' },
+        2: { main: 'Cloudy', description: 'partly cloudy', icon: '03' },
+        3: { main: 'Cloudy', description: 'overcast', icon: '04' },
+        45: { main: 'Fog', description: 'fog', icon: '50' },
+        48: { main: 'Fog', description: 'depositing rime fog', icon: '50' },
+        51: { main: 'Drizzle', description: 'light drizzle', icon: '09' },
+        53: { main: 'Drizzle', description: 'moderate drizzle', icon: '09' },
+        55: { main: 'Drizzle', description: 'dense drizzle', icon: '09' },
+        61: { main: 'Rain', description: 'slight rain', icon: '10' },
+        63: { main: 'Rain', description: 'moderate rain', icon: '10' },
+        65: { main: 'Rain', description: 'heavy rain', icon: '10' },
+        71: { main: 'Snow', description: 'slight snow fall', icon: '13' },
+        73: { main: 'Snow', description: 'moderate snow fall', icon: '13' },
+        75: { main: 'Snow', description: 'heavy snow fall', icon: '13' },
+        80: { main: 'Rain', description: 'rain showers', icon: '09' },
+        81: { main: 'Rain', description: 'moderate rain showers', icon: '09' },
+        82: { main: 'Rain', description: 'violent rain showers', icon: '09' },
+        95: { main: 'Thunderstorm', description: 'thunderstorm', icon: '11' },
+        96: { main: 'Thunderstorm', description: 'thunderstorm with hail', icon: '11' },
+        99: { main: 'Thunderstorm', description: 'thunderstorm with heavy hail', icon: '11' }
+    };
+
+    return codeMap[code] || { main: 'Unknown', description: 'weather data unavailable', icon: '02' };
+}
+
 // Fetch weather data
 async function fetchWeatherData(city) {
     try {
         showLoading('weatherData');
+        const geocodeParams = new URLSearchParams({
+            name: city,
+            count: 1,
+            language: 'en',
+            format: 'json'
+        });
+        const geocodeResponse = await fetch(`${API_CONFIG.weather.geocodeUrl}?${geocodeParams.toString()}`);
+        if (!geocodeResponse.ok) throw new Error(`Weather geocoding API error: ${geocodeResponse.status}`);
+        const geocodeData = await geocodeResponse.json();
+        const location = geocodeData?.results?.[0];
 
-        // For demo purposes, using mock data since we don't have API key
-        // In real implementation, uncomment the fetch below and use real API
-        /*
-        const response = await fetch(`${API_CONFIG.weather.url}?${API_CONFIG.weather.params}&q=${city}`);
-        if (!response.ok) throw new Error(`Weather API error: ${response.status}`);
-        const data = await response.json();
-        return data;
-        */
+        if (!location) throw new Error(`No geocoding result for city: ${city}`);
 
-        // Mock weather data for San Jose Del Monte
+        const weatherParams = new URLSearchParams({
+            latitude: location.latitude,
+            longitude: location.longitude,
+            current: 'temperature_2m,apparent_temperature,relative_humidity_2m,pressure_msl,wind_speed_10m,weather_code,is_day',
+            timezone: 'auto'
+        });
+        const weatherResponse = await fetch(`${API_CONFIG.weather.url}?${weatherParams.toString()}`);
+        if (!weatherResponse.ok) throw new Error(`Weather API error: ${weatherResponse.status}`);
+        const weatherData = await weatherResponse.json();
+        const current = weatherData?.current;
+
+        if (!current) throw new Error('Weather API response missing current weather data');
+
+        const descriptor = getWeatherDescriptor(current.weather_code);
+        const iconSuffix = current.is_day ? 'd' : 'n';
+
         return {
-            name: "San Jose Del Monte",
-            sys: { country: "PH" },
+            name: location.name || city,
+            city: location.name || city,
+            sys: { country: location.country_code || 'PH' },
             main: {
-                temp: 28.5,
-                feels_like: 31.2,
-                humidity: 78,
-                pressure: 1013
+                temp: current.temperature_2m,
+                feels_like: current.apparent_temperature,
+                humidity: current.relative_humidity_2m,
+                pressure: current.pressure_msl
             },
-            weather: [{ main: "Cloudy", description: "partly cloudy", icon: "02d" }],
-            wind: { speed: 3.5 },
-            dt: Date.now()
+            weather: [{
+                main: descriptor.main,
+                description: descriptor.description,
+                icon: `${descriptor.icon}${iconSuffix}`
+            }],
+            wind: { speed: current.wind_speed_10m },
+            dt: new Date(current.time).getTime()
         };
     } catch (error) {
         showError('weatherData', 'Failed to load weather data');
@@ -136,13 +191,62 @@ async function fetchCensusData() {
 async function fetchEconomicData() {
     try {
         showLoading('economicData');
+        const [gdpResponse, unemploymentResponse, povertyResponse, exchangeResponse] = await Promise.all([
+            fetch(API_CONFIG.economic.gdpPerCapitaUrl),
+            fetch(API_CONFIG.economic.unemploymentUrl),
+            fetch(API_CONFIG.economic.povertyUrl),
+            fetch(API_CONFIG.economic.usdToPhpUrl)
+        ]);
 
-        // Mock economic data
-        // In real implementation, you might use World Bank API, PSA API, etc.
+        if (!gdpResponse.ok) throw new Error(`Economic GDP API error: ${gdpResponse.status}`);
+        if (!unemploymentResponse.ok) throw new Error(`Economic unemployment API error: ${unemploymentResponse.status}`);
+        if (!povertyResponse.ok) throw new Error(`Economic poverty API error: ${povertyResponse.status}`);
+        if (!exchangeResponse.ok) throw new Error(`Exchange API error: ${exchangeResponse.status}`);
+
+        const [gdpPayload, unemploymentPayload, povertyPayload, exchangePayload] = await Promise.all([
+            gdpResponse.json(),
+            unemploymentResponse.json(),
+            povertyResponse.json(),
+            exchangeResponse.json()
+        ]);
+
+        const getLatestValue = (payload) => {
+            // World Bank API returns [metadata, dataSeries], where index 1 contains year/value entries.
+            const series = Array.isArray(payload?.[1]) ? payload[1] : [];
+            const latest = series.reduce((latestItem, item) => {
+                if (!item || item.value === null || item.value === undefined) return latestItem;
+                if (!latestItem) return item;
+                return Number(item.date || 0) > Number(latestItem.date || 0) ? item : latestItem;
+            }, null);
+            return latest ? latest.value : null;
+        };
+
+        const gdpPerCapitaUsd = getLatestValue(gdpPayload);
+        const unemploymentRate = getLatestValue(unemploymentPayload);
+        const povertyIncidence = getLatestValue(povertyPayload);
+        const usdToPhp = exchangePayload?.rates?.PHP || null;
+
+        if (gdpPerCapitaUsd === null || unemploymentRate === null || usdToPhp === null) {
+            throw new Error('Economic API response missing required values');
+        }
+
+        const gdpPerCapitaPhpRaw = gdpPerCapitaUsd * usdToPhp;
+        const gdpPerCapitaPhp = Math.round(gdpPerCapitaPhpRaw);
+        const estimatedMedianIncome = Math.round((gdpPerCapitaPhpRaw / MONTHS_PER_YEAR) * ECONOMIC_MEDIAN_INCOME_ESTIMATE_FACTOR);
+        const employmentRateRaw = 100 - unemploymentRate;
+        const employmentRateRounded = +employmentRateRaw.toFixed(1);
+        const employmentRate = Math.max(0, Math.min(100, employmentRateRounded));
+        if (employmentRateRounded < 0 || employmentRateRounded > 100) {
+            console.warn('Economic data warning: unemployment-derived employment rate was out of expected bounds.', {
+                unemploymentRate,
+                derivedEmploymentRate: employmentRateRounded
+            });
+        }
+
         return {
             city: "San Jose Del Monte",
-            gdp_per_capita: 185000, // PHP
-            employment_rate: 94.2, // %
+            gdp_per_capita: gdpPerCapitaPhp, // PHP (derived from World Bank + FX rate)
+            employment_rate: employmentRate, // %
             major_industries: [
                 "Manufacturing",
                 "Retail Trade",
@@ -150,8 +254,8 @@ async function fetchEconomicData() {
                 "Tourism",
                 "Agriculture"
             ],
-            poverty_incidence: 8.5, // %
-            median_income: 25000 // PHP monthly
+            poverty_incidence: povertyIncidence !== null ? +povertyIncidence.toFixed(1) : ECONOMIC_POVERTY_FALLBACK, // %
+            median_income: estimatedMedianIncome // PHP monthly (estimated from per-capita GDP)
         };
     } catch (error) {
         showError('economicData', 'Failed to load economic data');
