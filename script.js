@@ -128,7 +128,7 @@ function mapOpenMeteoCode(code) {
     return codeMap[code] || { main: 'Weather', description: 'unavailable', icon: '02d' };
 }
 
-function formatValue(value, formatter = (val) => val.toLocaleString()) {
+function formatValue(value, formatter = (value) => value.toLocaleString()) {
     if (value === null || value === undefined) return 'N/A';
     if (typeof value === 'number' && !Number.isFinite(value)) return 'N/A';
     return formatter(value);
@@ -253,7 +253,8 @@ async function fetchEconomicData() {
         const unemploymentRate = getLatestWorldBankValue(unemploymentResponse?.[1]);
         const povertyIncidence = getLatestWorldBankValue(povertyResponse?.[1]);
         const growthRate = getLatestWorldBankValue(growthResponse?.[1]);
-        // Approximation: derive employment as the inverse of unemployment.
+        // Approximation only: derive employment as the inverse of unemployment.
+        // This does not account for labor force participation differences.
         const employmentRate = unemploymentRate !== null
             ? Math.max(0, Math.min(100, 100 - unemploymentRate))
             : null;
@@ -613,7 +614,7 @@ function renderEconomicData(data) {
     if (!data) return;
     const safeEmploymentRate = data.employment_rate ?? 0;
     const safePovertyIncidence = data.poverty_incidence ?? 0;
-    const safeNonPoverty = Math.max(0, 100 - safePovertyIncidence);
+    const safeNonPoverty = Math.max(0, Math.min(100, 100 - safePovertyIncidence));
     const hasGraphMetrics = data.employment_rate !== null && data.poverty_incidence !== null;
 
     const economicHTML = `
