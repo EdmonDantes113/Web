@@ -158,8 +158,8 @@ async function fetchWeatherData(city) {
         }
 
         const forecastParams = new URLSearchParams({
-            latitude: location.latitude.toString(),
-            longitude: location.longitude.toString(),
+            latitude: location.latitude,
+            longitude: location.longitude,
             current: 'temperature_2m,apparent_temperature,relative_humidity_2m,surface_pressure,wind_speed_10m,weather_code',
             daily: 'weather_code,temperature_2m_max,temperature_2m_min',
             timezone: 'auto',
@@ -169,9 +169,12 @@ async function fetchWeatherData(city) {
         const currentCondition = mapOpenMeteoCode(weatherApiData.current.weather_code);
         const forecastDays = weatherApiData.daily.time.map((date, index) => {
             const condition = mapOpenMeteoCode(weatherApiData.daily.weather_code[index]);
+            const isIsoDate = /^\d{4}-\d{2}-\d{2}$/.test(date);
             const dayName = index === 0
                 ? 'Today'
-                : new Date(`${date}T12:00:00Z`).toLocaleDateString('en-US', { weekday: 'short', timeZone: 'UTC' });
+                : isIsoDate
+                    ? new Date(`${date}T12:00:00Z`).toLocaleDateString('en-US', { weekday: 'short', timeZone: 'UTC' })
+                    : `Day ${index + 1}`;
             return {
                 day: dayName,
                 temp: Math.round((weatherApiData.daily.temperature_2m_max[index] + weatherApiData.daily.temperature_2m_min[index]) / 2),
@@ -250,6 +253,7 @@ async function fetchEconomicData() {
         const unemploymentRate = getLatestWorldBankValue(unemploymentResponse?.[1]);
         const povertyIncidence = getLatestWorldBankValue(povertyResponse?.[1]);
         const growthRate = getLatestWorldBankValue(growthResponse?.[1]);
+        // Approximation: derive employment as the inverse of unemployment.
         const employmentRate = unemploymentRate !== null
             ? Math.max(0, Math.min(100, 100 - unemploymentRate))
             : null;
