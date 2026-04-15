@@ -2,46 +2,48 @@
 
 // API Configuration (using mock data and public APIs where possible)
 const API_CONFIG = {
-    // OpenWeatherMap would require API key - using mock for demo
+    // OpenWeatherMap v3 (latest, requires API key)
     weather: {
-        url: 'https://api.openweathermap.org/data/2.5/weather',
-        params: new URLSearchParams({
-            q: 'San Jose Del Monte,PH',
+        url: 'https://api.openweathermap.org/data/3.0/onecall', // v3 endpoint
+        // Note: You need a real API key for production
+        params: (lat, lon, key) => new URLSearchParams({
+            lat: lat,
+            lon: lon,
             units: 'metric',
-            appid: 'demo_key' // In real app, you'd get a real key
+            appid: key
         })
     },
-    // Using Philippine Statistics API or similar for census data
+    // Philippine Statistics Authority (PSA) - no public API, fallback to mock
     census: {
-        url: 'https://psa.gov.ph/api/v1/population', // Example endpoint
+        url: 'https://psa.gov.ph/population-census', // No API, fallback to mock
     },
-    // Economic indicators - using World Bank or similar
+    // World Bank v2 (latest stable)
     economic: {
         url: 'https://api.worldbank.org/v2/country/PHL/indicator/NY.GDP.MKTP.CD?format=json'
     },
-    // Traffic data - using MMDA or similar (mock)
+    // MMDA Traffic API (no public API, fallback to mock)
     traffic: {
-        url: 'https://mmda.gov.ph/api/traffic' // Example
+        url: 'https://mmda.gov.ph/traffic-api' // No public API, fallback to mock
     },
-    // Social media - using public Facebook page RSS or mock
+    // Facebook Graph API v19+ (requires access token, fallback to mock)
     social: {
-        url: 'https://www.facebook.com/pg/sanjosedelmontecity/posts/' // Would need scraping or API
+        url: 'https://graph.facebook.com/v19.0/{page-id}/posts' // Needs token, fallback to mock
     },
-    // Health services - using DOH or local health office data (mock)
+    // DOH DataDrop/WHO (no public API, fallback to mock)
     health: {
-        url: 'https://doh.gov.ph/api/health-facilities' // Example
+        url: 'https://data.gov.ph/dataset/health-facilities' // No API, fallback to mock
     },
-    // Education - using DepEd or CHED data (mock)
+    // DepEd/CHED (no public API, fallback to mock)
     education: {
-        url: 'https://deped.gov.ph/api/education-statistics' // Example
+        url: 'https://data.gov.ph/dataset/education-statistics' // No API, fallback to mock
     },
-    // Public safety - using PNP or local police data (mock)
+    // PNP (no public API, fallback to mock)
     safety: {
-        url: 'https://pnp.gov.ph/api/crime-statistics' // Example
+        url: 'https://data.gov.ph/dataset/crime-statistics' // No API, fallback to mock
     },
-    // Environment - using DENR or local environment office data (mock)
+    // DENR (no public API, fallback to mock)
     environment: {
-        url: 'https://denr.gov.ph/api/environmental-data' // Example
+        url: 'https://data.gov.ph/dataset/environmental-data' // No API, fallback to mock
     }
 };
 
@@ -78,6 +80,12 @@ async function fetchWeatherData(city) {
 
         // For demo purposes, using mock data since we don't have API key
         // In real implementation, uncomment the fetch below and use real API
+        /*
+        const response = await fetch(`${API_CONFIG.weather.url}?${API_CONFIG.weather.params}&q=${city}`);
+        if (!response.ok) throw new Error(`Weather API error: ${response.status}`);
+        const data = await response.json();
+        return data;
+        */
 
         // Mock weather data for San Jose Del Monte
         return {
@@ -143,8 +151,7 @@ async function fetchEconomicData() {
                 "Agriculture"
             ],
             poverty_incidence: 8.5, // %
-            median_income: 25000, // PHP monthly
-            growth_rate: 2.8 // Added growth rate to support the graph move
+            median_income: 25000 // PHP monthly
         };
     } catch (error) {
         showError('economicData', 'Failed to load economic data');
@@ -354,303 +361,119 @@ async function fetchEnvironmentData() {
     }
 }
 
-// Render weather data
-function renderWeatherData(data) {
-    if (!data) return;
-    
-    // Create mock forecast data for the next 5 days
-    const forecastDays = [
-        { day: 'Today', temp: data.main.temp, icon: data.weather[0].icon, desc: data.weather[0].description },
-        { day: 'Tomorrow', temp: Math.round(data.main.temp + (Math.random() * 4 - 2)), icon: '03d', desc: 'Partly cloudy' },
-        { day: 'Day 3', temp: Math.round(data.main.temp + (Math.random() * 6 - 3)), icon: '02d', desc: 'Mostly sunny' },
-        { day: 'Day 4', temp: Math.round(data.main.temp + (Math.random() * 5 - 2.5)), icon: '09d', desc: 'Light rain' },
-        { day: 'Day 5', temp: Math.round(data.main.temp + (Math.random() * 3 - 1.5)), icon: '01d', desc: 'Clear sky' }
-    ];
+// Tab navigation: load content only when tab is activated
+const tabConfig = [
+    { btn: 'weather', tab: 'weatherTab', loader: fetchWeatherData, renderer: renderWeatherData },
+    { btn: 'census', tab: 'censusTab', loader: fetchCensusData, renderer: renderCensusData },
+    { btn: 'economic', tab: 'economicTab', loader: fetchEconomicData, renderer: renderEconomicData },
+    { btn: 'traffic', tab: 'trafficTab', loader: fetchTrafficData, renderer: renderTrafficData },
+    { btn: 'social', tab: 'socialTab', loader: fetchSocialData, renderer: renderSocialData },
+    { btn: 'health', tab: 'healthTab', loader: fetchHealthData, renderer: renderHealthData },
+    { btn: 'education', tab: 'educationTab', loader: fetchEducationData, renderer: renderEducationData },
+    { btn: 'safety', tab: 'safetyTab', loader: fetchSafetyData, renderer: renderSafetyData },
+    { btn: 'environment', tab: 'environmentTab', loader: fetchEnvironmentData, renderer: renderEnvironmentData }
+];
 
-    // Find min and max temp to scale the graph properly
-    const temps = forecastDays.map(d => d.temp);
-    const minTemp = Math.min(...temps) - 2;
-    const maxTemp = Math.max(...temps) + 2;
-    const range = maxTemp - minTemp;
+let currentCity = 'San Jose Del Monte';
+let tabDataCache = {};
 
-    // Generate points for the line chart SVG
-    const width = 100; // Percentage
-    // Increase height of graph to make it larger vertically
-    const height = 300; 
-    
-    // Calculate coordinates for points
-    const points = forecastDays.map((day, index) => {
-        // Adjust x coordinate to stay well within bounds (10% to 90%)
-        const x = 10 + (index / (forecastDays.length - 1)) * 80;
-        const y = height - (((day.temp - minTemp) / range) * height);
-        return { x, y, temp: day.temp, day: day.day };
-    });
-
-    const weatherHTML = `
-        <div class="weather-info">
-            <div class="current-weather">
-                <h3>Current Conditions</h3>
-                <p><strong>Location:</strong> ${data.name}, ${data.sys.country}</p>
-                <p><strong>Temperature:</strong> ${data.main.temp}°C (feels like ${data.main.feels_like}°C)</p>
-                <p><strong>Condition:</strong> ${data.weather[0].main} - ${data.weather[0].description}</p>
-                <p><strong>Humidity:</strong> ${data.main.humidity}%</p>
-                <p><strong>Pressure:</strong> ${data.main.pressure} hPa</p>
-                <p><strong>Wind Speed:</strong> ${data.wind.speed} m/s</p>
-                <p><strong>Last Updated:</strong> ${new Date(data.dt * 1000).toLocaleTimeString()}</p>
-            </div>
-            
-            <div class="forecast-title">
-                <h3>5-Day Temperature Forecast</h3>
-            </div>
-            
-            <div class="line-chart-container" style="width: 100%; max-width: 1200px; margin: 0 auto; padding: 20px 0;">
-                <svg width="100%" height="400" viewBox="0 -20 100 400" preserveAspectRatio="none" style="overflow: visible;">
-                    <!-- Grid lines for better readability -->
-                    <line x1="10" y1="0" x2="90" y2="0" stroke="#e0e0e0" stroke-width="0.5" stroke-dasharray="2,2"/>
-                    <line x1="10" y1="100" x2="90" y2="100" stroke="#e0e0e0" stroke-width="0.5" stroke-dasharray="2,2"/>
-                    <line x1="10" y1="200" x2="90" y2="200" stroke="#e0e0e0" stroke-width="0.5" stroke-dasharray="2,2"/>
-                    <line x1="10" y1="300" x2="90" y2="300" stroke="#e0e0e0" stroke-width="0.5" stroke-dasharray="2,2"/>
-                    
-                    <!-- Line -->
-                    <polyline fill="none" stroke="var(--sjdm-pink)" stroke-width="2" points="${points.map(p => `${p.x},${p.y}`).join(' ')}"/>
-                    
-                    <!-- Points and Labels -->
-                    ${points.map(p => `
-                        <circle cx="${p.x}" cy="${p.y}" r="2" fill="var(--sjdm-orange)" stroke="white" stroke-width="1" />
-                        <text x="${p.x}" y="${p.y - 10}" text-anchor="middle" font-size="10" fill="var(--sjdm-dark)" font-weight="bold">${p.temp}°C</text>
-                        <text x="${p.x}" y="330" text-anchor="middle" font-size="10" fill="#666">${p.day}</text>
-                    `).join('')}
-                </svg>
-            </div>
-            
-            <div style="text-align: center; margin-top: 1rem; color: #666; font-size: 0.9rem;">
-                Temperature Trend (°C)
-            </div>
-        </div>
-    `;
-    
-    showSuccess('weatherData', weatherHTML);
+function setActiveTab(tabKey) {
+    // Remove active from all tab buttons and panes
+    document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+    document.querySelectorAll('.tab-pane').forEach(pane => pane.classList.remove('active'));
+    // Add active to selected
+    const btn = document.querySelector(`.tab-btn[data-tab="${tabKey}"]`);
+    const pane = document.getElementById(tabKey + 'Tab');
+    if (btn) btn.classList.add('active');
+    if (pane) pane.classList.add('active');
 }
 
-// Render census data
-// Generates HTML for demographic data and removes the growth graph, then updates the DOM
-function renderCensusData(data) {
-    if (!data) return;
-
-    const censusHTML = `
-        <div class="census-info">
-            <p><strong>City:</strong> ${data.city}, ${data.province}</p>
-            <p><strong>Region:</strong> ${data.region}</p>
-            <p><strong>Population:</strong> ${data.population.toLocaleString()} people</p>
-            <p><strong>Population Density:</strong> ${data.density.toLocaleString()} per km²</p>
-            <p><strong>Annual Growth Rate:</strong> <span class="stat-highlight">${data.growth_rate}%</span></p>
-            <p><strong>Number of Households:</strong> ${data.households.toLocaleString()}</p>
-            <p><strong>Average Family Size:</strong> ${data.average_family_size} members</p>
-        </div>
-    `;
-
-    showSuccess('censusData', censusHTML);
+async function loadTab(tabKey) {
+    setActiveTab(tabKey);
+    updateLastUpdated();
+    const tab = tabConfig.find(t => t.btn === tabKey);
+    if (!tab) return;
+    // Only fetch if not cached for this city
+    if (!tabDataCache[tabKey] || tabDataCache[tabKey].city !== currentCity) {
+        const data = tab.btn === 'weather' ? await tab.loader(currentCity) : await tab.loader();
+        tabDataCache[tabKey] = data;
+    }
+    tab.renderer(tabDataCache[tabKey]);
 }
 
-// Render economic data
-// Generates HTML for economic indicators and moves the graph here, then updates the DOM
-function renderEconomicData(data) {
-    if (!data) return;
-
-    const economicHTML = `
-        <div class="economic-info">
-            <p><strong>City:</strong> ${data.city}</p>
-            <p><strong>GDP per Capita:</strong> ₱${data.gdp_per_capita.toLocaleString()}</p>
-            <p><strong>Employment Rate:</strong> <span class="stat-highlight">${data.employment_rate}%</span></p>
-            <p><strong>Median Monthly Income:</strong> ₱${data.median_income.toLocaleString()}</p>
-            <p><strong>Poverty Incidence:</strong> <span class="stat-highlight">${data.poverty_incidence}%</span></p>
-            <p><strong>Major Industries:</strong></p>
-            <ul>
-                ${data.major_industries.map(industry => `<li>${industry}</li>`).join('')}
-            </ul>
-
-            <div style="margin-top: 2rem;">
-                <!-- Economic Graph -->
-                <div style="width: 100%; max-width: 600px; margin: 0 auto;">
-                    <div class="graph-container" style="height: 100px;">
-                        <div style="display: flex; height: 100%; align-items: flex-end; width: 100%; border-radius: 4px; overflow: hidden; gap: 4px;">
-                            <div class="graph-bar" style="position: relative; width: ${data.employment_rate}%; height: 100%; background: #FF0000;" title="Employment: ${data.employment_rate}%"></div>
-                            <div class="graph-bar" style="position: relative; width: ${100 - data.poverty_incidence}%; height: 100%; background: #FFA500;" title="Non-Poverty: ${100 - data.poverty_incidence}%"></div>
-                            <div class="graph-bar" style="position: relative; width: ${data.poverty_incidence}%; height: 100%; background: #E0E0E0;" title="Poverty: ${data.poverty_incidence}%"></div>
-                        </div>
-                    </div>
-                    <div style="text-align: center; margin-top: 0.5rem; font-size: 0.8rem; color: #666;">
-                        <span style="color: #FF0000;">🟥 Employment</span> | <span style="color: #FFA500;">🟧 Non-Poverty</span> | <span style="color: #E0E0E0;">⬜ Poverty Rate</span>
-                    </div>
-                </div>
-            </div>
-        </div>
-    `;
-
-    showSuccess('economicData', economicHTML);
-}
-
-// Render traffic data
-function renderTrafficData(data) {
-    if (!data) return;
-
-    const trafficHTML = `
-        <div class="traffic-info">
-            <p><strong>City:</strong> ${data.city}</p>
-            <p><strong>Last Updated:</strong> ${data.last_updated}</p>
-            <p><strong>Overall Conditions:</strong> ${data.traffic_conditions.overall}</p>
-            <p><strong>Congestion Level:</strong> ${data.traffic_conditions.congestion_level}</p>
-            <p><strong>Average Speed:</strong> ${data.traffic_conditions.average_speed}</p>
-            
-            <h3>Major Routes:</h3>
-            <ul>
-                ${data.major_routes.map(route => 
-                    `<li><strong>${route.route}:</strong> ${route.status} (${route.delay})</li>`
-                ).join('')}
-            </ul>
-            
-            <h3>Current Incidents:</h3>
-            <ul>
-                ${data.incidents.map(incident => 
-                    `<li><strong>${incident.location}:</strong> ${incident.description} (${incident.time})</li>`
-                ).join('')}
-            </ul>
-        </div>
-    `;
-
-    showSuccess('trafficData', trafficHTML);
-}
-
-// Render social media data
-function renderSocialData(data) {
-    if (!data) return;
-
-    const socialHTML = `
-        <div class="social-info">
-            <p><strong>Page:</strong> ${data.page}</p>
-            ${data.posts.map(post => `
-                <div class="social-post">
-                    <h3>Post ${post.id}</h3>
-                    <p>${post.message}</p>
-                    <div class="post-meta">
-                        <span>⏰ ${post.time}</span>
-                        <span>👍 ${post.reactions} reactions</span>
-                        <span>💬 ${post.comments} comments</span>
-                    </div>
-                </div>
-            `).join('')}
-        </div>
-    `;
-
-    showSuccess('socialData', socialHTML);
-}
-
-// Render health data
-function renderHealthData(data) {
-    if (!data) return;
-
-    const healthHTML = `
-        <div class="health-info">
-            <p><strong>City:</strong> ${data.city}</p>
-            <p><strong>Hospitals:</strong> ${data.hospitals}</p>
-            <p><strong>Health Centers:</strong> ${data.health_centers}</p>
-            <p><strong>Barangay Health Stations:</strong> ${data.barangay_health_stations}</p>
-            <p><strong>Doctors per 1000 people:</strong> ${data.doctors_per_1000}</p>
-            <p><strong>Nurses per 1000 people:</strong> ${data.nurses_per_1000}</p>
-            <p><strong>Hospital Beds per 1000 people:</strong> ${data.hospital_beds_per_1000}</p>
-            <p><strong>Vaccination Rate:</strong> ${data.vaccination_rate}%</p>
-            <p><strong>Maternal Mortality Rate:</strong> ${data.maternal_mortality_rate} per 100,000 live births</p>
-            <p><strong>Infant Mortality Rate:</strong> ${data.infant_mortality_rate} per 1,000 live births</p>
-            <p><strong>PhilHealth Coverage:</strong> ${data.philhealth_coverage}%</p>
-        </div>
-    `;
-
-    showSuccess('healthData', healthHTML);
-}
-
-// Render education data
-function renderEducationData(data) {
-    if (!data) return;
-
-    const educationHTML = `
-        <div class="education-info">
-            <p><strong>City:</strong> ${data.city}</p>
-            <p><strong>Public Elementary Schools:</strong> ${data.public_schools.elementary}</p>
-            <p><strong>Public High Schools:</strong> ${data.public_schools.high_school}</p>
-            <p><strong>Public Senior High Schools:</strong> ${data.public_schools.senior_high}</p>
-            <p><strong>Private Elementary Schools:</strong> ${data.private_schools.elementary}</p>
-            <p><strong>Private High Schools:</strong> ${data.private_schools.high_school}</p>
-            <p><strong>Private Senior High Schools:</strong> ${data.private_schools.senior_high}</p>
-            <p><strong>Colleges:</strong> ${data.private_schools.colleges}</p>
-            <p><strong>Total Enrollment:</strong> ${data.total_enrollment}</p>
-            <p><strong>Literacy Rate:</strong> ${data.literacy_rate}%</p>
-            <p><strong>Teacher-Student Ratio:</strong> ${data.teacher_student_ratio}</p>
-            <p><strong>Graduation Rate:</strong> ${data.graduation_rate}%</p>
-            <p><strong>Schools with Internet:</strong> ${data.schools_with_internet}%</p>
-        </div>
-    `;
-
-    showSuccess('educationData', educationHTML);
-}
-
-// Render safety data
-function renderSafetyData(data) {
-    if (!data) return;
-
-    const safetyHTML = `
-        <div class="safety-info">
-            <p><strong>City:</strong> ${data.city}</p>
-            <p><strong>Crime Rate:</strong> ${data.crime_rate} per 100,000 population</p>
-            <p><strong>Crime Solve Rate:</strong> ${data.crime_solve_rate}%</p>
-            <p><strong>Police Stations:</strong> ${data.police_stations}</p>
-            <p><strong>Fire Stations:</strong> ${data.fire_stations}</p>
-            <p><strong>Police Personnel:</strong> ${data.police_personnel}</p>
-            <p><strong>Fire Personnel:</strong> ${data.fire_personnel}</p>
-            <p><strong>Average Response Time:</strong> ${data.average_response_time}</p>
-            
-            <h3>Major Crimes:</h3>
-            <ul>
-                ${data.major_crimes.map(crime => 
-                    `<li><strong>${crime.type}:</strong> ${crime.count} cases (${crime.trend} trend)</li>`
-                ).join('')}
-            </ul>
-            
-            <h3>Traffic Accidents:</h3>
-            <p><strong>Total:</strong> ${data.traffic_accidents.total}</p>
-            <p><strong>Fatalities:</strong> ${data.traffic_accidents.fatalities}</p>
-            <p><strong>Injuries:</strong> ${data.traffic_accidents.injuries}</p>
-        </div>
-    `;
-
-    showSuccess('safetyData', safetyHTML);
-}
-
-// Render environment data
-function renderEnvironmentData(data) {
-    if (!data) return;
-
-    const environmentHTML = `
-        <div class="environment-info">
-            <p><strong>City:</strong> ${data.city}</p>
-            <p><strong>Air Quality Index:</strong> ${data.air_quality_index} (Good)</p>
-            <p><strong>Water Quality Rating:</strong> ${data.water_quality_rating} (Good)</p>
-            <p><strong>Green Space per Capita:</strong> ${data.green_space_per_capita} sq m per person</p>
-            <p><strong>Parks and Recreation Areas:</strong> ${data.parks_and_recreation}</p>
-            <p><strong>Waste Diversion Rate:</strong> ${data.waste_diversion_rate}%</p>
-            <p><strong>Recycling Rate:</strong> ${data.recycling_rate}%</p>
-            <p><strong>Tree Cover Percentage:</strong> ${data.tree_cover_percentage}%</p>
-            <p><strong>Renewable Energy Usage:</strong> ${data.renewable_energy_usage}%</p>
-            <p><strong>Flood Prone Areas:</strong> ${data.flood_prone_areas}% of city area</p>
-            
-            <h3>Environmental Programs:</h3>
-            <ul>
-                ${data.environmental_programs.map(program => `<li>${program}</li>`).join('')}
-            </ul>
-        </div>
-    `;
-
-    showSuccess('environmentData', environmentHTML);
-}
+document.addEventListener('DOMContentLoaded', function() {
+    // Tab button event listeners
+    function setupTabEvents() {
+        document.querySelectorAll('.tab-btn[data-tab]').forEach(btn => {
+            btn.addEventListener('click', function(e) {
+                // Prevent click if remove button was clicked
+                if (e.target.classList.contains('remove-tab')) return;
+                const tabKey = btn.getAttribute('data-tab');
+                loadTab(tabKey);
+            });
+        });
+        document.querySelectorAll('.remove-tab').forEach(span => {
+            span.onclick = function(e) {
+                e.stopPropagation();
+                const tabKey = span.getAttribute('data-tab');
+                removeTab(tabKey);
+            };
+        });
+    }
+    // Store removed tabs
+    let removedTabs = [];
+    function removeTab(tabKey) {
+        const btn = document.querySelector(`.tab-btn[data-tab="${tabKey}"]`);
+        if (!btn) return;
+        // Only remove if more than one tab is visible
+        const visibleTabs = Array.from(document.querySelectorAll('.tab-btn[data-tab]')).filter(b => b.style.display !== 'none');
+        if (visibleTabs.length <= 1) return;
+        btn.style.display = 'none';
+        removedTabs.push(tabKey);
+        // Hide tab content if it was active
+        if (btn.classList.contains('active')) {
+            // Activate the first visible tab
+            const firstVisible = visibleTabs.find(b => b.style.display !== 'none' && b !== btn);
+            if (firstVisible) {
+                const newTabKey = firstVisible.getAttribute('data-tab');
+                loadTab(newTabKey);
+            }
+        }
+        updateAddTabDropdown();
+    }
+    function addTab(tabKey) {
+        const btn = document.querySelector(`.tab-btn[data-tab="${tabKey}"]`);
+        if (btn) {
+            btn.style.display = '';
+            // If no tab is active, activate this one
+            if (!document.querySelector('.tab-btn.active')) {
+                loadTab(tabKey);
+            }
+            removedTabs = removedTabs.filter(t => t !== tabKey);
+            updateAddTabDropdown();
+        }
+    }
+    function updateAddTabDropdown() {
+        const container = document.getElementById('addTabDropdownContainer');
+        container.innerHTML = '';
+        if (removedTabs.length === 0) return;
+        const select = document.createElement('select');
+        select.style.marginRight = '0.5rem';
+        select.innerHTML = '<option value="">Add Tab...</option>' +
+            removedTabs.map(tabKey => {
+                const btn = document.querySelector(`.tab-btn[data-tab="${tabKey}"]`);
+                return `<option value="${tabKey}">${btn ? btn.textContent.replace('✖','').trim() : tabKey}</option>`;
+            }).join('');
+        select.onchange = function() {
+            if (select.value) addTab(select.value);
+            select.value = '';
+        };
+        container.appendChild(select);
+    }
+    setupTabEvents();
+    // Initial load: weather tab
+    loadTab('weather');
+});
 
 // Update last updated timestamp
 function updateLastUpdated() {
@@ -694,46 +517,268 @@ async function loadAllData(city = 'San Jose Del Monte') {
     }
 }
 
-// Event listener for form submission
-document.getElementById('cityForm').addEventListener('submit', function(e) {
-    e.preventDefault();
-    const cityInput = document.getElementById('cityInput').value.trim();
-    if (cityInput) {
-        loadAllData(cityInput);
+
+// Optional: Auto-refresh current tab every 5 minutes
+setInterval(() => {
+    const activeBtn = document.querySelector('.tab-btn.active');
+    const tabKey = activeBtn ? activeBtn.getAttribute('data-tab') : 'weather';
+    tabDataCache[tabKey] = null; // Invalidate cache for current tab
+    loadTab(tabKey);
+}, 5 * 60 * 1000); // 5 minutes
+
+// Render weather data
+function renderWeatherData(data) {
+    if (!data) return;
+    // Weather icon (OpenWeather icon or SVG)
+    const iconUrl = data.weather && data.weather[0] && data.weather[0].icon
+        ? `https://openweathermap.org/img/wn/${data.weather[0].icon}@2x.png`
+        : 'https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/icons/cloud-sun.svg';
+
+    // Chart.js: temperature (current, feels_like)
+    setTimeout(() => {
+        if (document.getElementById('weatherChart')) {
+            const ctx = document.getElementById('weatherChart').getContext('2d');
+            new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: ['Current', 'Feels Like'],
+                    datasets: [{
+                        label: 'Temperature (°C)',
+                        data: [data.main.temp, data.main.feels_like],
+                        backgroundColor: ['#FF6B9D', '#FF9F1C']
+                    }]
+                },
+                options: {
+                    plugins: { legend: { display: false } },
+                    scales: { y: { beginAtZero: true } }
+                }
+            });
+        }
+    }, 100);
+
+    document.getElementById('weatherData').innerHTML = `
+        <div class="card">
+            <h2>Weather in ${data.name}, ${data.sys.country}</h2>
+            <div class="data-content" style="display:flex;align-items:center;gap:2rem;flex-wrap:wrap;">
+                <div style="flex:0 0 100px;text-align:center;">
+                    <img src="${iconUrl}" alt="Weather Icon" style="width:80px;height:80px;">
+                    <div style="font-size:1.1rem;font-weight:600;">${data.weather[0].main}</div>
+                </div>
+                <div style="flex:1;min-width:180px;">
+                    <p><strong>Temperature:</strong> ${data.main.temp}°C (feels like ${data.main.feels_like}°C)</p>
+                    <p><strong>Condition:</strong> ${data.weather[0].description}</p>
+                    <p><strong>Humidity:</strong> ${data.main.humidity}%</p>
+                    <p><strong>Pressure:</strong> ${data.main.pressure} hPa</p>
+                    <p><strong>Wind Speed:</strong> ${data.wind.speed} m/s</p>
+                </div>
+                <div style="flex:1;min-width:180px;">
+                    <canvas id="weatherChart" width="180" height="120"></canvas>
+                </div>
+            </div>
+        </div>
+    `;
+}
+
+// Render census data
+function renderCensusData(data) {
+    if (!data) return;
+    // Visual: population icon (SVG) and pie chart for household/family size
+    setTimeout(() => {
+        if (document.getElementById('censusChart')) {
+            const ctx = document.getElementById('censusChart').getContext('2d');
+            new Chart(ctx, {
+                type: 'pie',
+                data: {
+                    labels: ['Households', 'Avg Family Size'],
+                    datasets: [{
+                        data: [data.households, data.average_family_size * data.households],
+                        backgroundColor: ['#FF6B9D', '#FF9F1C']
+                    }]
+                },
+                options: { plugins: { legend: { position: 'bottom' } } }
+            });
+        }
+    }, 100);
+    document.getElementById('censusData').innerHTML = `
+        <div class="card">
+            <h2>Census for ${data.city}, ${data.province} <span style='font-size:1.2em;'>👨‍👩‍👧‍👦</span></h2>
+            <div class="data-content" style="display:flex;align-items:center;gap:2rem;flex-wrap:wrap;">
+                <div style="flex:1;min-width:180px;">
+                    <p><strong>Region:</strong> ${data.region}</p>
+                    <p><strong>Population:</strong> ${data.population.toLocaleString()} people</p>
+                    <p><strong>Population Density:</strong> ${data.density.toLocaleString()} per km²</p>
+                    <p><strong>Annual Growth Rate:</strong> ${data.growth_rate}%</p>
+                </div>
+                <div style="flex:1;min-width:180px;">
+                    <canvas id="censusChart" width="180" height="120"></canvas>
+                </div>
+            </div>
+        </div>
+    `;
+}
+
+// Render economic data
+function renderEconomicData(data) {
+    if (!data) return;
+    document.getElementById('economicData').innerHTML = `
+        <div class="card">
+            <h2>Economic Indicators</h2>
+            <div class="data-content">
+                <p><strong>GDP per Capita:</strong> ₱${data.gdp_per_capita.toLocaleString()}</p>
+                <p><strong>Employment Rate:</strong> ${data.employment_rate}%</p>
+                <p><strong>Median Monthly Income:</strong> ₱${data.median_income.toLocaleString()}</p>
+                <p><strong>Poverty Incidence:</strong> ${data.poverty_incidence}%</p>
+                <p><strong>Major Industries:</strong> ${data.major_industries.join(', ')}</p>
+            </div>
+        </div>
+    `;
+}
+
+// Render traffic data
+function renderTrafficData(data) {
+    if (!data) return;
+    document.getElementById('trafficData').innerHTML = `
+        <div class="card">
+            <h2>Traffic Status</h2>
+            <div class="data-content">
+                <p><strong>Last Updated:</strong> ${data.last_updated}</p>
+                <p><strong>Overall:</strong> ${data.traffic_conditions.overall}</p>
+                <p><strong>Congestion Level:</strong> ${data.traffic_conditions.congestion_level}</p>
+                <p><strong>Average Speed:</strong> ${data.traffic_conditions.average_speed}</p>
+            </div>
+        </div>
+    `;
+}
+
+// Render social data
+// Social Media: Add/Remove Post Logic
+let socialPosts = null;
+
+function renderSocialData(data) {
+    if (!data) return;
+    // Use a local copy for add/remove
+    if (!socialPosts) socialPosts = [...data.posts];
+    const socialDataDiv = document.getElementById('socialData');
+    let html = `<button id="addPostBtn" style="margin-bottom:1rem;" class="tab-btn">Add Post</button>`;
+    html += `<div class="dashboard-grid">`;
+    if (socialPosts.length === 0) {
+        html += `<div class="card"><div class="data-content"><em>No posts available.</em></div></div>`;
     } else {
-        alert('Please enter a city name');
-    }
-});
-
-// Tab switching functionality, initial load, and auto-refresh
-document.addEventListener('DOMContentLoaded', function() {
-    // Set up tab switching
-    const tabButtons = document.querySelectorAll('.tab-btn');
-    const tabPanes = document.querySelectorAll('.tab-pane');
-
-    tabButtons.forEach(button => {
-        button.addEventListener('click', function() {
-            // Remove active class from all buttons and panes
-            tabButtons.forEach(btn => btn.classList.remove('active'));
-            tabPanes.forEach(pane => pane.classList.remove('active'));
-
-            // Add active class to clicked button
-            this.classList.add('active');
-
-            // Show corresponding tab pane
-            const tabId = this.getAttribute('data-tab') + 'Tab';
-            const tabPane = document.getElementById(tabId);
-            if (tabPane) {
-                tabPane.classList.add('active');
-            }
+        socialPosts.forEach((post, idx) => {
+            html += `
+                <div class="card">
+                    <h2>Post #${post.id}</h2>
+                    <div class="data-content">
+                        <p>${post.message}</p>
+                        <small>${post.time} | 👍 ${post.reactions} | 💬 ${post.comments}</small><br>
+                        <button class="tab-btn" style="margin-top:0.75rem;background:#e74c3c;color:#fff;" data-remove-idx="${idx}">Remove</button>
+                    </div>
+                </div>
+            `;
         });
+    }
+    html += `</div>`;
+    socialDataDiv.innerHTML = html;
+
+    // Add Post event
+    document.getElementById('addPostBtn').onclick = function() {
+        const newId = socialPosts.length > 0 ? Math.max(...socialPosts.map(p => p.id)) + 1 : 1;
+        socialPosts.unshift({
+            id: newId,
+            message: "[New Post] Enter your message here.",
+            time: "just now",
+            reactions: 0,
+            comments: 0
+        });
+        renderSocialData({posts: socialPosts});
+    };
+    // Remove Post events
+    document.querySelectorAll('[data-remove-idx]').forEach(btn => {
+        btn.onclick = function() {
+            const idx = parseInt(btn.getAttribute('data-remove-idx'));
+            socialPosts.splice(idx, 1);
+            renderSocialData({posts: socialPosts});
+        };
     });
+}
 
-    // Initial load on page load
-    loadAllData();
+// Render health data
+function renderHealthData(data) {
+    if (!data) return;
+    document.getElementById('healthData').innerHTML = `
+        <div class="card health-card">
+            <h2>Health Services</h2>
+            <div class="data-content">
+                <p><strong>Hospitals:</strong> ${data.hospitals}</p>
+                <p><strong>Health Centers:</strong> ${data.health_centers}</p>
+                <p><strong>Barangay Health Stations:</strong> ${data.barangay_health_stations}</p>
+                <p><strong>Doctors per 1000:</strong> ${data.doctors_per_1000}</p>
+                <p><strong>Nurses per 1000:</strong> ${data.nurses_per_1000}</p>
+                <p><strong>Hospital Beds per 1000:</strong> ${data.hospital_beds_per_1000}</p>
+                <p><strong>Vaccination Rate:</strong> ${data.vaccination_rate}%</p>
+                <p><strong>PhilHealth Coverage:</strong> ${data.philhealth_coverage}%</p>
+            </div>
+        </div>
+    `;
+}
 
-    // Optional: Auto-refresh data every 5 minutes
-    setInterval(() => {
-        loadAllData();
-    }, 5 * 60 * 1000); // 5 minutes
-});
+// Render education data
+function renderEducationData(data) {
+    if (!data) return;
+    document.getElementById('educationData').innerHTML = `
+        <div class="card education-card">
+            <h2>Education Statistics</h2>
+            <div class="data-content">
+                <p><strong>Public Elementary:</strong> ${data.public_schools.elementary}</p>
+                <p><strong>Public High School:</strong> ${data.public_schools.high_school}</p>
+                <p><strong>Private Elementary:</strong> ${data.private_schools.elementary}</p>
+                <p><strong>Private High School:</strong> ${data.private_schools.high_school}</p>
+                <p><strong>Colleges:</strong> ${data.private_schools.colleges}</p>
+                <p><strong>Total Enrollment:</strong> ${data.total_enrollment}</p>
+                <p><strong>Literacy Rate:</strong> ${data.literacy_rate}%</p>
+                <p><strong>Graduation Rate:</strong> ${data.graduation_rate}%</p>
+            </div>
+        </div>
+    `;
+}
+
+// Render safety data
+function renderSafetyData(data) {
+    if (!data) return;
+    document.getElementById('safetyData').innerHTML = `
+        <div class="card safety-card">
+            <h2>Public Safety</h2>
+            <div class="data-content">
+                <p><strong>Crime Rate:</strong> ${data.crime_rate}</p>
+                <p><strong>Crime Solve Rate:</strong> ${data.crime_solve_rate}%</p>
+                <p><strong>Police Stations:</strong> ${data.police_stations}</p>
+                <p><strong>Fire Stations:</strong> ${data.fire_stations}</p>
+                <p><strong>Police Personnel:</strong> ${data.police_personnel}</p>
+                <p><strong>Fire Personnel:</strong> ${data.fire_personnel}</p>
+                <p><strong>Average Response Time:</strong> ${data.average_response_time}</p>
+            </div>
+        </div>
+    `;
+}
+
+// Render environment data
+function renderEnvironmentData(data) {
+    if (!data) return;
+    document.getElementById('environmentData').innerHTML = `
+        <div class="card environment-card">
+            <h2>Environment & Sustainability</h2>
+            <div class="data-content">
+                <p><strong>Air Quality Index:</strong> ${data.air_quality_index}</p>
+                <p><strong>Water Quality:</strong> ${data.water_quality_rating}</p>
+                <p><strong>Green Space per Capita:</strong> ${data.green_space_per_capita}</p>
+                <p><strong>Parks and Recreation:</strong> ${data.parks_and_recreation}</p>
+                <p><strong>Waste Diversion Rate:</strong> ${data.waste_diversion_rate}%</p>
+                <p><strong>Recycling Rate:</strong> ${data.recycling_rate}%</p>
+                <p><strong>Tree Cover Percentage:</strong> ${data.tree_cover_percentage}%</p>
+                <p><strong>Renewable Energy Usage:</strong> ${data.renewable_energy_usage}%</p>
+                <p><strong>Flood Prone Areas:</strong> ${data.flood_prone_areas}%</p>
+                <p><strong>Environmental Programs:</strong> ${data.environmental_programs.join(', ')}</p>
+            </div>
+        </div>
+    `;
+}
