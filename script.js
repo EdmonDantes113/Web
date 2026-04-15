@@ -44,10 +44,11 @@ const API_CONFIG = {
     }
 };
 
-// Heuristic factor for approximating monthly median income from annual per-capita GDP output.
+// Heuristic: approximates monthly median income as 45% of monthly per-capita GDP output.
+// This preserves the dashboard's prior estimation behavior while using live source indicators.
 const ECONOMIC_MEDIAN_INCOME_ESTIMATE_FACTOR = 0.45;
 const MONTHS_PER_YEAR = 12;
-const ECONOMIC_POVERTY_FALLBACK = 8.5; // Fallback baseline when latest World Bank poverty value is unavailable.
+const ECONOMIC_POVERTY_FALLBACK = 8.5; // Legacy dashboard baseline used when no recent poverty value is returned.
 
 // Utility function to create DOM elements
 function createElement(tag, className, textContent) {
@@ -211,7 +212,8 @@ async function fetchEconomicData() {
         const getLatestValue = (payload) => {
             // World Bank API returns [metadata, dataSeries], where index 1 contains year/value entries.
             const series = Array.isArray(payload?.[1]) ? payload[1] : [];
-            const latest = series.find(item => item && item.value !== null && item.value !== undefined);
+            const sortedSeries = [...series].sort((a, b) => Number(b?.date || 0) - Number(a?.date || 0));
+            const latest = sortedSeries.find(item => item && item.value !== null && item.value !== undefined);
             return latest ? latest.value : null;
         };
 
@@ -226,7 +228,7 @@ async function fetchEconomicData() {
 
         const gdpPerCapitaPhpRaw = gdpPerCapitaUsd * usdToPhp;
         const gdpPerCapitaPhp = Math.round(gdpPerCapitaPhpRaw);
-        const medianIncome = Math.round((gdpPerCapitaPhpRaw / MONTHS_PER_YEAR) * ECONOMIC_MEDIAN_INCOME_ESTIMATE_FACTOR);
+        const estimatedMedianIncome = Math.round((gdpPerCapitaPhpRaw / MONTHS_PER_YEAR) * ECONOMIC_MEDIAN_INCOME_ESTIMATE_FACTOR);
         const employmentRateRaw = 100 - unemploymentRate;
         const employmentRateRounded = +employmentRateRaw.toFixed(1);
         const employmentRate = Math.max(0, Math.min(100, employmentRateRounded));
@@ -249,7 +251,7 @@ async function fetchEconomicData() {
                 "Agriculture"
             ],
             poverty_incidence: povertyIncidence !== null ? +povertyIncidence.toFixed(1) : ECONOMIC_POVERTY_FALLBACK, // %
-            median_income: medianIncome // PHP monthly (estimated from per-capita GDP)
+            median_income: estimatedMedianIncome // PHP monthly (estimated from per-capita GDP)
         };
     } catch (error) {
         showError('economicData', 'Failed to load economic data');
