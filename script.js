@@ -118,7 +118,7 @@ async function fetchWeatherData(city) {
         const weatherParams = new URLSearchParams({
             latitude: location.latitude,
             longitude: location.longitude,
-            current: 'temperature_2m,apparent_temperature,relative_humidity_2m,pressure_msl,wind_speed_10m,weather_code',
+            current: 'temperature_2m,apparent_temperature,relative_humidity_2m,pressure_msl,wind_speed_10m,weather_code,is_day',
             timezone: 'auto'
         });
         const weatherResponse = await fetch(`${API_CONFIG.weather.url}?${weatherParams.toString()}`);
@@ -219,12 +219,17 @@ async function fetchEconomicData() {
         }
 
         const gdpPerCapitaPhp = Math.round(gdpPerCapitaUsd * usdToPhp);
-        const medianIncome = Math.round((gdpPerCapitaPhp / 12) * 0.45);
+        // 0.45 approximates the typical share of annual per-capita output reflected as monthly household disposable income.
+        const medianIncomeEstimateFactor = 0.45;
+        const medianIncome = Math.round((gdpPerCapitaPhp / 12) * medianIncomeEstimateFactor);
+        const employmentRateRaw = 100 - unemploymentRate;
+        const employmentRateRounded = +employmentRateRaw.toFixed(1);
+        const employmentRate = Math.max(0, Math.min(100, employmentRateRounded));
 
         return {
             city: "San Jose Del Monte",
             gdp_per_capita: gdpPerCapitaPhp, // PHP (derived from World Bank + FX rate)
-            employment_rate: Math.max(0, Math.min(100, +(100 - unemploymentRate).toFixed(1))), // %
+            employment_rate: employmentRate, // %
             major_industries: [
                 "Manufacturing",
                 "Retail Trade",
