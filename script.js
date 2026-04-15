@@ -129,7 +129,8 @@ function mapOpenMeteoCode(code) {
 }
 
 function formatValue(value, formatter = (val) => val.toLocaleString()) {
-    if (value === null || value === undefined || Number.isNaN(value)) return 'N/A';
+    if (value === null || value === undefined) return 'N/A';
+    if (typeof value === 'number' && !Number.isFinite(value)) return 'N/A';
     return formatter(value);
 }
 
@@ -170,7 +171,7 @@ async function fetchWeatherData(city) {
             const condition = mapOpenMeteoCode(weatherApiData.daily.weather_code[index]);
             const dayName = index === 0
                 ? 'Today'
-                : new Date(`${date}T00:00:00`).toLocaleDateString('en-US', { weekday: 'short' });
+                : new Date(`${date}T12:00:00Z`).toLocaleDateString('en-US', { weekday: 'short', timeZone: 'UTC' });
             return {
                 day: dayName,
                 temp: Math.round((weatherApiData.daily.temperature_2m_max[index] + weatherApiData.daily.temperature_2m_min[index]) / 2),
@@ -249,7 +250,9 @@ async function fetchEconomicData() {
         const unemploymentRate = getLatestWorldBankValue(unemploymentResponse?.[1]);
         const povertyIncidence = getLatestWorldBankValue(povertyResponse?.[1]);
         const growthRate = getLatestWorldBankValue(growthResponse?.[1]);
-        const employmentRate = unemploymentRate !== null ? Math.max(0, 100 - unemploymentRate) : null;
+        const employmentRate = unemploymentRate !== null
+            ? Math.max(0, Math.min(100, 100 - unemploymentRate))
+            : null;
 
         return {
             city: "San Jose Del Monte",
