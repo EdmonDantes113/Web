@@ -44,6 +44,8 @@ const API_CONFIG = {
     }
 };
 
+const ECONOMIC_MEDIAN_INCOME_ESTIMATE_FACTOR = 0.45;
+
 // Utility function to create DOM elements
 function createElement(tag, className, textContent) {
     const element = document.createElement(tag);
@@ -204,6 +206,7 @@ async function fetchEconomicData() {
         ]);
 
         const getLatestValue = (payload) => {
+            // World Bank API returns [metadata, dataSeries], where index 1 contains year/value entries.
             const series = Array.isArray(payload?.[1]) ? payload[1] : [];
             const latest = series.find(item => item && item.value !== null && item.value !== undefined);
             return latest ? latest.value : null;
@@ -218,13 +221,18 @@ async function fetchEconomicData() {
             throw new Error('Economic API response missing required values');
         }
 
-        const gdpPerCapitaPhp = Math.round(gdpPerCapitaUsd * usdToPhp);
-        // 0.45 approximates the typical share of annual per-capita output reflected as monthly household disposable income.
-        const medianIncomeEstimateFactor = 0.45;
-        const medianIncome = Math.round((gdpPerCapitaPhp / 12) * medianIncomeEstimateFactor);
+        const gdpPerCapitaPhpRaw = gdpPerCapitaUsd * usdToPhp;
+        const gdpPerCapitaPhp = Math.round(gdpPerCapitaPhpRaw);
+        const medianIncome = Math.round((gdpPerCapitaPhpRaw / 12) * ECONOMIC_MEDIAN_INCOME_ESTIMATE_FACTOR);
         const employmentRateRaw = 100 - unemploymentRate;
         const employmentRateRounded = +employmentRateRaw.toFixed(1);
         const employmentRate = Math.max(0, Math.min(100, employmentRateRounded));
+        if (employmentRate !== employmentRateRounded) {
+            console.warn('Economic data warning: unemployment-derived employment rate was out of expected bounds.', {
+                unemploymentRate,
+                derivedEmploymentRate: employmentRateRounded
+            });
+        }
 
         return {
             city: "San Jose Del Monte",
