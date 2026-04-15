@@ -45,10 +45,11 @@ const API_CONFIG = {
 };
 
 // Heuristic: approximates monthly median income as 45% of monthly per-capita GDP output.
-// This preserves the dashboard's prior estimation behavior while using live source indicators.
+// This preserves the dashboard's prior behavior where income is displayed as a conservative subset
+// of per-capita output (not a statistically exact median-income measure).
 const ECONOMIC_MEDIAN_INCOME_ESTIMATE_FACTOR = 0.45;
 const MONTHS_PER_YEAR = 12;
-const ECONOMIC_POVERTY_FALLBACK = 8.5; // Legacy dashboard baseline used when no recent poverty value is returned.
+const ECONOMIC_POVERTY_FALLBACK = 8.5; // Legacy dashboard baseline (prior static poverty incidence value).
 
 // Utility function to create DOM elements
 function createElement(tag, className, textContent) {
@@ -212,8 +213,11 @@ async function fetchEconomicData() {
         const getLatestValue = (payload) => {
             // World Bank API returns [metadata, dataSeries], where index 1 contains year/value entries.
             const series = Array.isArray(payload?.[1]) ? payload[1] : [];
-            const sortedSeries = [...series].sort((a, b) => Number(b?.date || 0) - Number(a?.date || 0));
-            const latest = sortedSeries.find(item => item && item.value !== null && item.value !== undefined);
+            const latest = series.reduce((latestItem, item) => {
+                if (!item || item.value === null || item.value === undefined) return latestItem;
+                if (!latestItem) return item;
+                return Number(item.date || 0) > Number(latestItem.date || 0) ? item : latestItem;
+            }, null);
             return latest ? latest.value : null;
         };
 
@@ -232,7 +236,7 @@ async function fetchEconomicData() {
         const employmentRateRaw = 100 - unemploymentRate;
         const employmentRateRounded = +employmentRateRaw.toFixed(1);
         const employmentRate = Math.max(0, Math.min(100, employmentRateRounded));
-        if (employmentRate !== employmentRateRounded) {
+        if (employmentRateRounded < 0 || employmentRateRounded > 100) {
             console.warn('Economic data warning: unemployment-derived employment rate was out of expected bounds.', {
                 unemploymentRate,
                 derivedEmploymentRate: employmentRateRounded
