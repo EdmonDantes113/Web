@@ -1,4 +1,4 @@
-// City Data Dashboard - Main JavaScript Functionality
+// City Data Dashboard - Main JavaScript Functionality.
 
 // API Configuration (using mock data and public APIs where possible)
 const API_CONFIG = {

@@ -193,7 +193,7 @@ header p {
     color: var(--sjdm-dark);
 }
 
-/* Social media posts */
+/* Social media posts. */
 .social-post {
     border-bottom: 1px solid rgba(238, 238, 238, 0.5);
     padding: 1.25rem 0;
