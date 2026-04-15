@@ -237,7 +237,8 @@ async function fetchWeatherData(city) {
         const weatherParams = new URLSearchParams({
             latitude: String(cityConfig.latitude),
             longitude: String(cityConfig.longitude),
-            current_weather: 'true'
+            current_weather: 'true',
+            windspeed_unit: 'kmh'
         });
         const weatherResponse = await fetch(`${API_CONFIG.weather.url}?${weatherParams.toString()}`);
         if (!weatherResponse.ok) throw new Error(`Weather API error: ${weatherResponse.status}`);
