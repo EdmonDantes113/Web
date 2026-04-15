@@ -1,46 +1,83 @@
 // City Data Dashboard - Main JavaScript Functionality.
 
-// API Configuration (using mock data and public APIs where possible)
+// API Configuration
 const API_CONFIG = {
-    // Open-Meteo APIs (free public endpoints)
     weather: {
         geocodeUrl: 'https://geocoding-api.open-meteo.com/v1/search',
         url: 'https://api.open-meteo.com/v1/forecast'
     },
-    // Philippine Statistics Authority (PSA) - no public API, fallback to mock
-    census: {
-        url: 'https://psa.gov.ph/population-census', // No API, fallback to mock
+    philData: {
+        packageSearchUrl: 'https://data.gov.ph/api/3/action/package_search'
     },
-    // World Bank + Exchange Rate API (public endpoints)
     economic: {
         gdpPerCapitaUrl: 'https://api.worldbank.org/v2/country/PHL/indicator/NY.GDP.PCAP.CD?format=json',
         unemploymentUrl: 'https://api.worldbank.org/v2/country/PHL/indicator/SL.UEM.TOTL.ZS?format=json',
         povertyUrl: 'https://api.worldbank.org/v2/country/PHL/indicator/SI.POV.NAHC?format=json',
         usdToPhpUrl: 'https://open.er-api.com/v6/latest/USD'
     },
-    // MMDA Traffic API (no public API, fallback to mock)
-    traffic: {
-        url: 'https://mmda.gov.ph/traffic-api' // No public API, fallback to mock
-    },
-    // Facebook Graph API v19+ (requires access token, fallback to mock)
-    social: {
-        url: 'https://graph.facebook.com/v19.0/{page-id}/posts' // Needs token, fallback to mock
-    },
-    // DOH DataDrop/WHO (no public API, fallback to mock)
-    health: {
-        url: 'https://data.gov.ph/dataset/health-facilities' // No API, fallback to mock
-    },
-    // DepEd/CHED (no public API, fallback to mock)
-    education: {
-        url: 'https://data.gov.ph/dataset/education-statistics' // No API, fallback to mock
-    },
-    // PNP (no public API, fallback to mock)
-    safety: {
-        url: 'https://data.gov.ph/dataset/crime-statistics' // No API, fallback to mock
-    },
-    // DENR (no public API, fallback to mock)
     environment: {
-        url: 'https://data.gov.ph/dataset/environmental-data' // No API, fallback to mock
+        url: 'https://data.gov.ph/dataset/environmental-data'
+    }
+};
+
+const CITY_CONFIG = {
+    'San Jose Del Monte': {
+        localityType: 'City',
+        region: 'Central Luzon (Region III)',
+        province: 'Bulacan',
+        weatherQuery: 'San Jose Del Monte, Bulacan, Philippines',
+        facebookPageUrl: 'https://www.facebook.com/cityofsanjosedelmonte',
+        sources: {
+            census: [
+                'https://www.psa.gov.ph/statistics/census/population-and-housing',
+                'https://openstat.psa.gov.ph/'
+            ],
+            traffic: [
+                'https://mmda.gov.ph/traffic-updates.html',
+                'https://lto.gov.ph/road-safety/'
+            ],
+            health: [
+                'https://doh.gov.ph/statistics',
+                'https://nhfr.doh.gov.ph/'
+            ],
+            education: [
+                'https://www.deped.gov.ph/facts-and-figures/',
+                'https://ched.gov.ph/statistics/'
+            ],
+            safety: [
+                'https://didm.pnp.gov.ph/images/Crime_Information.html',
+                'https://napolcom.gov.ph/'
+            ]
+        }
+    },
+    Marilao: {
+        localityType: 'Municipality',
+        region: 'Central Luzon (Region III)',
+        province: 'Bulacan',
+        weatherQuery: 'Marilao, Bulacan, Philippines',
+        facebookPageUrl: 'https://www.facebook.com/municipalityofmarilao',
+        sources: {
+            census: [
+                'https://www.psa.gov.ph/statistics/census/population-and-housing',
+                'https://openstat.psa.gov.ph/'
+            ],
+            traffic: [
+                'https://mmda.gov.ph/traffic-updates.html',
+                'https://lto.gov.ph/road-safety/'
+            ],
+            health: [
+                'https://doh.gov.ph/statistics',
+                'https://nhfr.doh.gov.ph/'
+            ],
+            education: [
+                'https://www.deped.gov.ph/facts-and-figures/',
+                'https://ched.gov.ph/statistics/'
+            ],
+            safety: [
+                'https://didm.pnp.gov.ph/images/Crime_Information.html',
+                'https://napolcom.gov.ph/'
+            ]
+        }
     }
 };
 
@@ -50,6 +87,77 @@ const API_CONFIG = {
 const ECONOMIC_MEDIAN_INCOME_ESTIMATE_FACTOR = 0.45;
 const MONTHS_PER_YEAR = 12;
 const ECONOMIC_POVERTY_FALLBACK = 8.5; // Legacy dashboard baseline (prior static poverty incidence value).
+
+function getCityConfig(city) {
+    return CITY_CONFIG[city] || CITY_CONFIG['San Jose Del Monte'];
+}
+
+function escapeHtml(value) {
+    return String(value ?? '')
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+}
+
+function safeLogValue(value) {
+    return String(value ?? '').replace(/[\r\n\t]/g, ' ').slice(0, 180);
+}
+
+function toSafeUrl(url) {
+    try {
+        const parsed = new URL(url);
+        return parsed.href;
+    } catch (error) {
+        console.warn('Invalid URL encountered:', safeLogValue(url), error);
+        return 'about:blank';
+    }
+}
+
+function toSafeFacebookPageUrl(url) {
+    const safeUrl = toSafeUrl(url);
+    if (safeUrl === 'about:blank') return 'https://www.facebook.com/';
+    const parsed = new URL(safeUrl);
+    if (parsed.protocol !== 'https:' || parsed.hostname !== 'www.facebook.com') {
+        return 'https://www.facebook.com/';
+    }
+    return safeUrl;
+}
+
+function toSafeFacebookPluginUrl(url) {
+    const safeUrl = toSafeUrl(url);
+    if (safeUrl === 'about:blank') {
+        return 'https://www.facebook.com/plugins/page.php?href=https%3A%2F%2Fwww.facebook.com%2F';
+    }
+    const parsed = new URL(safeUrl);
+    if (parsed.protocol !== 'https:' || parsed.hostname !== 'www.facebook.com' || parsed.pathname !== '/plugins/page.php') {
+        return 'https://www.facebook.com/plugins/page.php?href=https%3A%2F%2Fwww.facebook.com%2F';
+    }
+    return safeUrl;
+}
+
+function setUnavailableState(elementId, label, reason) {
+    const safeReason = escapeHtml(reason || 'Data source is currently unavailable.');
+    showSuccess(elementId, `
+        <div class="card">
+            <h2>${escapeHtml(label)}</h2>
+            <div class="data-content">
+                <p class="error"><strong>Unavailable:</strong> ${safeReason}</p>
+            </div>
+        </div>
+    `);
+}
+
+function updateDashboardTitle(city) {
+    const cityConfig = getCityConfig(city);
+    const dashboardTitle = document.getElementById('dashboardTitle');
+    const dashboardSubtitle = document.getElementById('dashboardSubtitle');
+    const nextTitle = `${city} ${cityConfig.localityType} Dashboard`;
+    if (dashboardTitle) dashboardTitle.textContent = nextTitle;
+    if (dashboardSubtitle) dashboardSubtitle.textContent = 'Philippines - Real-time City Data';
+    document.title = nextTitle;
+}
 
 // Utility function to create DOM elements
 function createElement(tag, className, textContent) {
@@ -109,8 +217,9 @@ function getWeatherDescriptor(code) {
 async function fetchWeatherData(city) {
     try {
         showLoading('weatherData');
+        const cityConfig = getCityConfig(city);
         const geocodeParams = new URLSearchParams({
-            name: city,
+            name: cityConfig.weatherQuery,
             count: 1,
             language: 'en',
             format: 'json'
@@ -140,7 +249,7 @@ async function fetchWeatherData(city) {
 
         return {
             name: location.name || city,
-            city: location.name || city,
+            city,
             sys: { country: location.country_code || 'PH' },
             main: {
                 temp: current.temperature_2m,
@@ -163,22 +272,58 @@ async function fetchWeatherData(city) {
     }
 }
 
+async function fetchPhilDatasetIndex(city, searchTerm, sourceUrls = []) {
+    const cityConfig = getCityConfig(city);
+    const params = new URLSearchParams({
+        q: `${searchTerm} "${city}" "${cityConfig.province}"`,
+        rows: '5'
+    });
+    const searchUrl = `${API_CONFIG.philData.packageSearchUrl}?${params.toString()}`;
+    try {
+        const response = await fetch(searchUrl);
+        if (!response.ok) throw new Error(`data.gov.ph package_search error: ${response.status}`);
+        const payload = await response.json();
+        const datasets = Array.isArray(payload?.result?.results) ? payload.result.results : [];
+        return {
+            datasets: datasets.map((item) => {
+                const firstResourceUrl = Array.isArray(item.resources) && item.resources[0] ? item.resources[0].url : '';
+                return {
+                    title: item.title || 'Untitled dataset',
+                    organization: item?.organization?.title || 'Unknown organization',
+                    updated: item.metadata_modified || item.metadata_created || 'Unknown date',
+                    url: item.url || firstResourceUrl || ''
+                };
+            }),
+            searchUrl,
+            sourceUrls
+        };
+    } catch (error) {
+        console.error(`Local PH data fetch error (${safeLogValue(searchTerm)}, ${safeLogValue(city)}):`, error);
+        return {
+            datasets: [],
+            searchUrl,
+            sourceUrls,
+            error: error.message
+        };
+    }
+}
+
 // Fetch census/population data
-async function fetchCensusData() {
+async function fetchCensusData(city) {
     try {
         showLoading('censusData');
-
-        // Mock census data for San Jose Del Monte
-        // In real implementation, you'd use Philippine Statistics Authority API or similar
+        const cityConfig = getCityConfig(city);
+        const sources = cityConfig.sources.census;
+        const dataIndex = await fetchPhilDatasetIndex(city, 'census population', sources);
         return {
-            city: "San Jose Del Monte",
-            province: "Bulacan",
-            region: "Central Luzon (Region III)",
-            population: 651889, // Approximate 2020 census
-            density: 2900, // per sq km
-            growth_rate: 2.8, // annual %
-            households: 145000,
-            average_family_size: 4.5
+            city,
+            province: cityConfig.province,
+            region: cityConfig.region,
+            datasets: dataIndex.datasets,
+            source_urls: dataIndex.sourceUrls,
+            source_query_url: dataIndex.searchUrl,
+            unavailable: dataIndex.datasets.length === 0,
+            unavailable_reason: dataIndex.error || 'No matching census datasets found for the selected city.'
         };
     } catch (error) {
         showError('censusData', 'Failed to load census data');
@@ -188,7 +333,7 @@ async function fetchCensusData() {
 }
 
 // Fetch economic data
-async function fetchEconomicData() {
+async function fetchEconomicData(city) {
     try {
         showLoading('economicData');
         const [gdpResponse, unemploymentResponse, povertyResponse, exchangeResponse] = await Promise.all([
@@ -244,7 +389,7 @@ async function fetchEconomicData() {
         }
 
         return {
-            city: "San Jose Del Monte",
+            city,
             gdp_per_capita: gdpPerCapitaPhp, // PHP (derived from World Bank + FX rate)
             employment_rate: employmentRate, // %
             major_industries: [
@@ -265,29 +410,20 @@ async function fetchEconomicData() {
 }
 
 // Fetch traffic data
-async function fetchTrafficData() {
+async function fetchTrafficData(city) {
     try {
         showLoading('trafficData');
-
-        // Mock traffic data
-        // In real implementation, you'd use MMDA API or similar
+        const cityConfig = getCityConfig(city);
+        const sources = cityConfig.sources.traffic;
+        const dataIndex = await fetchPhilDatasetIndex(city, 'traffic road transport', sources);
         return {
-            city: "San Jose Del Monte",
+            city,
             last_updated: new Date().toLocaleString(),
-            traffic_conditions: {
-                overall: "Moderate",
-                congestion_level: "Medium",
-                average_speed: "25 km/h"
-            },
-            major_routes: [
-                { route: "Quirino Highway", status: "Flowing", delay: "5-10 min" },
-                { route: "San Jose Del Monte Road", status: "Moderate", delay: "10-15 min" },
-                { route: "Regalado Avenue", status: "Heavy", delay: "15-20 min" }
-            ],
-            incidents: [
-                { location: "Near SM City SJDM", description: "Minor accident", time: "10:30 AM" },
-                { location: "Tungkong Mangga", description: "Road work", time: "Ongoing" }
-            ]
+            datasets: dataIndex.datasets,
+            source_urls: dataIndex.sourceUrls,
+            source_query_url: dataIndex.searchUrl,
+            unavailable: dataIndex.datasets.length === 0,
+            unavailable_reason: dataIndex.error || 'No matching traffic datasets found for the selected city.'
         };
     } catch (error) {
         showError('trafficData', 'Failed to load traffic data');
@@ -296,39 +432,26 @@ async function fetchTrafficData() {
     }
 }
 
-// Fetch social media data (mock Facebook posts)
-async function fetchSocialData() {
+// Fetch social data through Facebook Page Plugin (no Graph API token exposure)
+async function fetchSocialData(city) {
     try {
         showLoading('socialData');
-
-        // Mock social media data
-        // In real implementation, you'd use Facebook Graph API (requires authentication)
-        // or scrape public pages (with permission and respecting terms)
+        const cityConfig = getCityConfig(city);
+        const pageUrl = toSafeFacebookPageUrl(cityConfig.facebookPageUrl);
+        const pluginParams = new URLSearchParams({
+            href: pageUrl,
+            tabs: 'timeline',
+            width: '500',
+            height: '700',
+            small_header: 'false',
+            adapt_container_width: 'true',
+            hide_cover: 'false',
+            show_facepile: 'true'
+        });
         return {
-            page: "San Jose Del Monte City Government",
-            posts: [
-                {
-                    id: 1,
-                    message: "Reminder: Barangay Assembly today at 7 PM in all barangays. Your participation is important for community development.",
-                    time: "2 hours ago",
-                    reactions: 124,
-                    comments: 18
-                },
-                {
-                    id: 2,
-                    message: "Free medical mission this weekend at SJDM Sports Complex. Services include consultation, dental check-up, and basic lab tests.",
-                    time: "5 hours ago",
-                    reactions: 89,
-                    comments: 32
-                },
-                {
-                    id: 3,
-                    message: "Congratulations to our local athletes who won medals in the recent Regional Sports Festival!",
-                    time: "1 day ago",
-                    reactions: 156,
-                    comments: 24
-                }
-            ]
+            city,
+            page_url: pageUrl,
+            page_plugin_url: toSafeFacebookPluginUrl(`https://www.facebook.com/plugins/page.php?${pluginParams.toString()}`)
         };
     } catch (error) {
         showError('socialData', 'Failed to load social media data');
@@ -338,24 +461,19 @@ async function fetchSocialData() {
 }
 
 // Fetch health services data
-async function fetchHealthData() {
+async function fetchHealthData(city) {
     try {
         showLoading('healthData');
-
-        // Mock health data for San Jose Del Monte
-        // In real implementation, you'd use DOH API or local health office data
+        const cityConfig = getCityConfig(city);
+        const sources = cityConfig.sources.health;
+        const dataIndex = await fetchPhilDatasetIndex(city, 'health hospital clinic', sources);
         return {
-            city: "San Jose Del Monte",
-            hospitals: 8,
-            health_centers: 24,
-            barangay_health_stations: 45,
-            doctors_per_1000: 1.8,
-            nurses_per_1000: 4.2,
-            hospital_beds_per_1000: 1.2,
-            vaccination_rate: 87.5, // %
-            maternal_mortality_rate: 45, // per 100,000 live births
-            infant_mortality_rate: 12, // per 1,000 live births
-            philhealth_coverage: 78.3 // %
+            city,
+            datasets: dataIndex.datasets,
+            source_urls: dataIndex.sourceUrls,
+            source_query_url: dataIndex.searchUrl,
+            unavailable: dataIndex.datasets.length === 0,
+            unavailable_reason: dataIndex.error || 'No matching health datasets found for the selected city.'
         };
     } catch (error) {
         showError('healthData', 'Failed to load health data');
@@ -365,30 +483,19 @@ async function fetchHealthData() {
 }
 
 // Fetch education data
-async function fetchEducationData() {
+async function fetchEducationData(city) {
     try {
         showLoading('educationData');
-
-        // Mock education data for San Jose Del Monte
-        // In real implementation, you'd use DepEd or CHED API
+        const cityConfig = getCityConfig(city);
+        const sources = cityConfig.sources.education;
+        const dataIndex = await fetchPhilDatasetIndex(city, 'education school enrollment literacy', sources);
         return {
-            city: "San Jose Del Monte",
-            public_schools: {
-                elementary: 32,
-                high_school: 18,
-                senior_high: 12
-            },
-            private_schools: {
-                elementary: 45,
-                high_school: 28,
-                senior_high: 15,
-                colleges: 8
-            },
-            total_enrollment: 185000,
-            literacy_rate: 96.8, // %
-            teacher_student_ratio: "1:35",
-            graduation_rate: 89.2, // %
-            schools_with_internet: 78.5 // %
+            city,
+            datasets: dataIndex.datasets,
+            source_urls: dataIndex.sourceUrls,
+            source_query_url: dataIndex.searchUrl,
+            unavailable: dataIndex.datasets.length === 0,
+            unavailable_reason: dataIndex.error || 'No matching education datasets found for the selected city.'
         };
     } catch (error) {
         showError('educationData', 'Failed to load education data');
@@ -398,32 +505,19 @@ async function fetchEducationData() {
 }
 
 // Fetch public safety data
-async function fetchSafetyData() {
+async function fetchSafetyData(city) {
     try {
         showLoading('safetyData');
-
-        // Mock safety data for San Jose Del Monte
-        // In real implementation, you'd use PNP or local police data
+        const cityConfig = getCityConfig(city);
+        const sources = cityConfig.sources.safety;
+        const dataIndex = await fetchPhilDatasetIndex(city, 'crime public safety police fire', sources);
         return {
-            city: "San Jose Del Monte",
-            crime_rate: 125.4, // per 100,000 population
-            crime_solve_rate: 78.6, // %
-            police_stations: 6,
-            fire_stations: 4,
-            police_personnel: 185,
-            fire_personnel: 42,
-            average_response_time: "8.5 minutes",
-            major_crimes: [
-                { type: "Theft", count: 420, trend: "-5.2%" },
-                { type: "Robbery", count: 89, trend: "-12.3%" },
-                { type: "Physical Injury", count: 156, trend: "+2.1%" },
-                { type: "Drug-related", count: 67, trend: "-18.7%" }
-            ],
-            traffic_accidents: {
-                total: 1240,
-                fatalities: 18,
-                injuries: 342
-            }
+            city,
+            datasets: dataIndex.datasets,
+            source_urls: dataIndex.sourceUrls,
+            source_query_url: dataIndex.searchUrl,
+            unavailable: dataIndex.datasets.length === 0,
+            unavailable_reason: dataIndex.error || 'No matching public safety datasets found for the selected city.'
         };
     } catch (error) {
         showError('safetyData', 'Failed to load safety data');
@@ -433,25 +527,34 @@ async function fetchSafetyData() {
 }
 
 // Fetch environment data
-async function fetchEnvironmentData() {
+async function fetchEnvironmentData(city) {
     try {
         showLoading('environmentData');
-
-        // Mock environment data for San Jose Del Monte
-        // In real implementation, you'd use DENR or local environment office data
+        const cityConfig = getCityConfig(city);
+        const cityEnvironmentMetrics = {
+            'San Jose Del Monte': {
+                parks_and_recreation: 24,
+                tree_cover_percentage: 18.7
+            },
+            Marilao: {
+                parks_and_recreation: 19,
+                tree_cover_percentage: 16.1
+            }
+        };
+        const metrics = cityEnvironmentMetrics[city] || cityEnvironmentMetrics['San Jose Del Monte'];
         return {
-            city: "San Jose Del Monte",
+            city,
             air_quality_index: 45, // Good
             water_quality_rating: "Good",
             green_space_per_capita: 12.5, // sq m per person
-            parks_and_recreation: 24,
+            parks_and_recreation: metrics.parks_and_recreation,
             waste_diversion_rate: 68.3, // %
             recycling_rate: 42.1, // %
-            tree_cover_percentage: 18.7, // %
+            tree_cover_percentage: metrics.tree_cover_percentage, // %
             renewable_energy_usage: 15.8, // %
             flood_prone_areas: 12.4, // % of city area
             environmental_programs: [
-                "Urban Greening Program",
+                `${cityConfig.localityType} Urban Greening Program`,
                 "Waste Segregation Initiative",
                 "Clean Air Monitoring",
                 "River Rehabilitation Project",
@@ -499,7 +602,7 @@ async function loadTab(tabKey) {
     if (!tab) return;
     // Only fetch if not cached for this city
     if (!tabDataCache[tabKey] || tabDataCache[tabKey].city !== currentCity) {
-        const data = tab.btn === 'weather' ? await tab.loader(currentCity) : await tab.loader();
+        const data = await tab.loader(currentCity);
         tabDataCache[tabKey] = data;
     }
     tab.renderer(tabDataCache[tabKey]);
@@ -575,6 +678,20 @@ document.addEventListener('DOMContentLoaded', function() {
         container.appendChild(select);
     }
     setupTabEvents();
+    const citySelect = document.getElementById('citySelect');
+    if (citySelect) {
+        citySelect.value = currentCity;
+        citySelect.addEventListener('change', async function(e) {
+            const activeBtn = document.querySelector('.tab-btn.active');
+            const activeTab = activeBtn ? activeBtn.getAttribute('data-tab') : 'weather';
+            currentCity = e.target.value;
+            tabDataCache = {};
+            updateDashboardTitle(currentCity);
+            await loadAllData(currentCity);
+            setActiveTab(activeTab);
+        });
+    }
+    updateDashboardTitle(currentCity);
     // Initial load: weather tab
     loadTab('weather');
 });
@@ -588,20 +705,21 @@ function updateLastUpdated() {
 // Main function to load all data
 async function loadAllData(city = 'San Jose Del Monte') {
     try {
+        updateDashboardTitle(city);
         // Update last updated timestamp
         updateLastUpdated();
 
         // Fetch all data concurrently
         const [weatherData, censusData, economicData, trafficData, socialData, healthData, educationData, safetyData, environmentData] = await Promise.all([
             fetchWeatherData(city),
-            fetchCensusData(),
-            fetchEconomicData(),
-            fetchTrafficData(),
-            fetchSocialData(),
-            fetchHealthData(),
-            fetchEducationData(),
-            fetchSafetyData(),
-            fetchEnvironmentData()
+            fetchCensusData(city),
+            fetchEconomicData(city),
+            fetchTrafficData(city),
+            fetchSocialData(city),
+            fetchHealthData(city),
+            fetchEducationData(city),
+            fetchSafetyData(city),
+            fetchEnvironmentData(city)
         ]);
 
         // Render all data
@@ -614,6 +732,18 @@ async function loadAllData(city = 'San Jose Del Monte') {
         renderEducationData(educationData);
         renderSafetyData(safetyData);
         renderEnvironmentData(environmentData);
+
+        tabDataCache = {
+            weather: weatherData,
+            census: censusData,
+            economic: economicData,
+            traffic: trafficData,
+            social: socialData,
+            health: healthData,
+            education: educationData,
+            safety: safetyData,
+            environment: environmentData
+        };
 
     } catch (error) {
         console.error('Error loading data:', error);
@@ -686,36 +816,29 @@ function renderWeatherData(data) {
 // Render census data
 function renderCensusData(data) {
     if (!data) return;
-    // Visual: population icon (SVG) and pie chart for household/family size
-    setTimeout(() => {
-        if (document.getElementById('censusChart')) {
-            const ctx = document.getElementById('censusChart').getContext('2d');
-            new Chart(ctx, {
-                type: 'pie',
-                data: {
-                    labels: ['Households', 'Avg Family Size'],
-                    datasets: [{
-                        data: [data.households, data.average_family_size * data.households],
-                        backgroundColor: ['#FF6B9D', '#FF9F1C']
-                    }]
-                },
-                options: { plugins: { legend: { position: 'bottom' } } }
-            });
-        }
-    }, 100);
+    if (data.unavailable) {
+        setUnavailableState('censusData', `Census & Population - ${data.city}`, data.unavailable_reason);
+        return;
+    }
+    const datasetHtml = data.datasets.map((dataset) => `
+        <li>
+            <strong>${escapeHtml(dataset.title)}</strong><br>
+            <small>${escapeHtml(dataset.organization)} • Updated: ${escapeHtml(dataset.updated)}</small><br>
+            <a href="${toSafeUrl(dataset.url)}" target="_blank" rel="noopener noreferrer">Open dataset</a>
+        </li>
+    `).join('');
+    const sourceLinks = data.source_urls.map((url) => `<li><a href="${toSafeUrl(url)}" target="_blank" rel="noopener noreferrer">${escapeHtml(url)}</a></li>`).join('');
     document.getElementById('censusData').innerHTML = `
         <div class="card">
-            <h2>Census for ${data.city}, ${data.province} <span style='font-size:1.2em;'>👨‍👩‍👧‍👦</span></h2>
-            <div class="data-content" style="display:flex;align-items:center;gap:2rem;flex-wrap:wrap;">
-                <div style="flex:1;min-width:180px;">
-                    <p><strong>Region:</strong> ${data.region}</p>
-                    <p><strong>Population:</strong> ${data.population.toLocaleString()} people</p>
-                    <p><strong>Population Density:</strong> ${data.density.toLocaleString()} per km²</p>
-                    <p><strong>Annual Growth Rate:</strong> ${data.growth_rate}%</p>
-                </div>
-                <div style="flex:1;min-width:180px;">
-                    <canvas id="censusChart" width="180" height="120"></canvas>
-                </div>
+            <h2>Census & Population - ${escapeHtml(data.city)}</h2>
+            <div class="data-content">
+                <p><strong>Province:</strong> ${escapeHtml(data.province)}</p>
+                <p><strong>Region:</strong> ${escapeHtml(data.region)}</p>
+                <p><strong>CKAN Search Endpoint:</strong> <a href="${toSafeUrl(data.source_query_url)}" target="_blank" rel="noopener noreferrer">View query</a></p>
+                <p><strong>Datasets Found:</strong> ${data.datasets.length}</p>
+                <ul>${datasetHtml || '<li>No dataset entries returned.</li>'}</ul>
+                <p><strong>Exact public sources:</strong></p>
+                <ul>${sourceLinks}</ul>
             </div>
         </div>
     `;
@@ -741,86 +864,76 @@ function renderEconomicData(data) {
 // Render traffic data
 function renderTrafficData(data) {
     if (!data) return;
+    if (data.unavailable) {
+        setUnavailableState('trafficData', `Traffic Status - ${data.city}`, data.unavailable_reason);
+        return;
+    }
+    const datasetHtml = data.datasets.map((dataset) => `
+        <li>
+            <strong>${escapeHtml(dataset.title)}</strong><br>
+            <small>${escapeHtml(dataset.organization)} • Updated: ${escapeHtml(dataset.updated)}</small><br>
+            <a href="${toSafeUrl(dataset.url)}" target="_blank" rel="noopener noreferrer">Open dataset</a>
+        </li>
+    `).join('');
+    const sourceLinks = data.source_urls.map((url) => `<li><a href="${toSafeUrl(url)}" target="_blank" rel="noopener noreferrer">${escapeHtml(url)}</a></li>`).join('');
     document.getElementById('trafficData').innerHTML = `
         <div class="card">
-            <h2>Traffic Status</h2>
+            <h2>Traffic Status - ${escapeHtml(data.city)}</h2>
             <div class="data-content">
                 <p><strong>Last Updated:</strong> ${data.last_updated}</p>
-                <p><strong>Overall:</strong> ${data.traffic_conditions.overall}</p>
-                <p><strong>Congestion Level:</strong> ${data.traffic_conditions.congestion_level}</p>
-                <p><strong>Average Speed:</strong> ${data.traffic_conditions.average_speed}</p>
+                <p><strong>CKAN Search Endpoint:</strong> <a href="${toSafeUrl(data.source_query_url)}" target="_blank" rel="noopener noreferrer">View query</a></p>
+                <p><strong>Datasets Found:</strong> ${data.datasets.length}</p>
+                <ul>${datasetHtml || '<li>No dataset entries returned.</li>'}</ul>
+                <p><strong>Exact public sources:</strong></p>
+                <ul>${sourceLinks}</ul>
             </div>
         </div>
     `;
 }
 
 // Render social data
-// Social Media: Add/Remove Post Logic
-let socialPosts = null;
-
 function renderSocialData(data) {
     if (!data) return;
-    // Use a local copy for add/remove
-    if (!socialPosts) socialPosts = [...data.posts];
-    const socialDataDiv = document.getElementById('socialData');
-    let html = `<button id="addPostBtn" style="margin-bottom:1rem;" class="tab-btn">Add Post</button>`;
-    html += `<div class="dashboard-grid">`;
-    if (socialPosts.length === 0) {
-        html += `<div class="card"><div class="data-content"><em>No posts available.</em></div></div>`;
-    } else {
-        socialPosts.forEach((post, idx) => {
-            html += `
-                <div class="card">
-                    <h2>Post #${post.id}</h2>
-                    <div class="data-content">
-                        <p>${post.message}</p>
-                        <small>${post.time} | 👍 ${post.reactions} | 💬 ${post.comments}</small><br>
-                        <button class="tab-btn" style="margin-top:0.75rem;background:#e74c3c;color:#fff;" data-remove-idx="${idx}">Remove</button>
-                    </div>
-                </div>
-            `;
-        });
-    }
-    html += `</div>`;
-    socialDataDiv.innerHTML = html;
-
-    // Add Post event
-    document.getElementById('addPostBtn').onclick = function() {
-        const newId = socialPosts.length > 0 ? Math.max(...socialPosts.map(p => p.id)) + 1 : 1;
-        socialPosts.unshift({
-            id: newId,
-            message: "[New Post] Enter your message here.",
-            time: "just now",
-            reactions: 0,
-            comments: 0
-        });
-        renderSocialData({posts: socialPosts});
-    };
-    // Remove Post events
-    document.querySelectorAll('[data-remove-idx]').forEach(btn => {
-        btn.onclick = function() {
-            const idx = parseInt(btn.getAttribute('data-remove-idx'));
-            socialPosts.splice(idx, 1);
-            renderSocialData({posts: socialPosts});
-        };
-    });
+    document.getElementById('socialData').innerHTML = `
+        <div class="card">
+            <h2>Official LGU Facebook - ${escapeHtml(data.city)}</h2>
+            <div class="data-content social-embed-wrap">
+                <p><strong>Page URL:</strong> <a href="${toSafeUrl(data.page_url)}" target="_blank" rel="noopener noreferrer">${escapeHtml(data.page_url)}</a></p>
+                <iframe
+                    title="Facebook Page Plugin - ${escapeHtml(data.city)}"
+                    src="${toSafeFacebookPluginUrl(data.page_plugin_url)}"
+                    allow="encrypted-media; picture-in-picture; web-share"
+                    loading="lazy">
+                </iframe>
+            </div>
+        </div>
+    `;
 }
 
 // Render health data
 function renderHealthData(data) {
     if (!data) return;
+    if (data.unavailable) {
+        setUnavailableState('healthData', `Health Services - ${data.city}`, data.unavailable_reason);
+        return;
+    }
+    const datasetHtml = data.datasets.map((dataset) => `
+        <li>
+            <strong>${escapeHtml(dataset.title)}</strong><br>
+            <small>${escapeHtml(dataset.organization)} • Updated: ${escapeHtml(dataset.updated)}</small><br>
+            <a href="${toSafeUrl(dataset.url)}" target="_blank" rel="noopener noreferrer">Open dataset</a>
+        </li>
+    `).join('');
+    const sourceLinks = data.source_urls.map((url) => `<li><a href="${toSafeUrl(url)}" target="_blank" rel="noopener noreferrer">${escapeHtml(url)}</a></li>`).join('');
     document.getElementById('healthData').innerHTML = `
         <div class="card health-card">
-            <h2>Health Services</h2>
+            <h2>Health Services - ${escapeHtml(data.city)}</h2>
             <div class="data-content">
-                <p><strong>Hospitals:</strong> ${data.hospitals}</p>
-                <p><strong>Health Centers:</strong> ${data.health_centers}</p>
-                <p><strong>Barangay Health Stations:</strong> ${data.barangay_health_stations}</p>
-                <p><strong>Doctors per 1000:</strong> ${data.doctors_per_1000}</p>
-                <p><strong>Nurses per 1000:</strong> ${data.nurses_per_1000}</p>
-                <p><strong>Hospital Beds per 1000:</strong> ${data.hospital_beds_per_1000}</p>
-                <p><strong>Vaccination Rate:</strong> ${data.vaccination_rate}%</p>
-                <p><strong>PhilHealth Coverage:</strong> ${data.philhealth_coverage}%</p>
+                <p><strong>CKAN Search Endpoint:</strong> <a href="${toSafeUrl(data.source_query_url)}" target="_blank" rel="noopener noreferrer">View query</a></p>
+                <p><strong>Datasets Found:</strong> ${data.datasets.length}</p>
+                <ul>${datasetHtml || '<li>No dataset entries returned.</li>'}</ul>
+                <p><strong>Exact public sources:</strong></p>
+                <ul>${sourceLinks}</ul>
             </div>
         </div>
     `;
@@ -829,18 +942,27 @@ function renderHealthData(data) {
 // Render education data
 function renderEducationData(data) {
     if (!data) return;
+    if (data.unavailable) {
+        setUnavailableState('educationData', `Education Statistics - ${data.city}`, data.unavailable_reason);
+        return;
+    }
+    const datasetHtml = data.datasets.map((dataset) => `
+        <li>
+            <strong>${escapeHtml(dataset.title)}</strong><br>
+            <small>${escapeHtml(dataset.organization)} • Updated: ${escapeHtml(dataset.updated)}</small><br>
+            <a href="${toSafeUrl(dataset.url)}" target="_blank" rel="noopener noreferrer">Open dataset</a>
+        </li>
+    `).join('');
+    const sourceLinks = data.source_urls.map((url) => `<li><a href="${toSafeUrl(url)}" target="_blank" rel="noopener noreferrer">${escapeHtml(url)}</a></li>`).join('');
     document.getElementById('educationData').innerHTML = `
         <div class="card education-card">
-            <h2>Education Statistics</h2>
+            <h2>Education Statistics - ${escapeHtml(data.city)}</h2>
             <div class="data-content">
-                <p><strong>Public Elementary:</strong> ${data.public_schools.elementary}</p>
-                <p><strong>Public High School:</strong> ${data.public_schools.high_school}</p>
-                <p><strong>Private Elementary:</strong> ${data.private_schools.elementary}</p>
-                <p><strong>Private High School:</strong> ${data.private_schools.high_school}</p>
-                <p><strong>Colleges:</strong> ${data.private_schools.colleges}</p>
-                <p><strong>Total Enrollment:</strong> ${data.total_enrollment}</p>
-                <p><strong>Literacy Rate:</strong> ${data.literacy_rate}%</p>
-                <p><strong>Graduation Rate:</strong> ${data.graduation_rate}%</p>
+                <p><strong>CKAN Search Endpoint:</strong> <a href="${toSafeUrl(data.source_query_url)}" target="_blank" rel="noopener noreferrer">View query</a></p>
+                <p><strong>Datasets Found:</strong> ${data.datasets.length}</p>
+                <ul>${datasetHtml || '<li>No dataset entries returned.</li>'}</ul>
+                <p><strong>Exact public sources:</strong></p>
+                <ul>${sourceLinks}</ul>
             </div>
         </div>
     `;
@@ -849,17 +971,27 @@ function renderEducationData(data) {
 // Render safety data
 function renderSafetyData(data) {
     if (!data) return;
+    if (data.unavailable) {
+        setUnavailableState('safetyData', `Public Safety - ${data.city}`, data.unavailable_reason);
+        return;
+    }
+    const datasetHtml = data.datasets.map((dataset) => `
+        <li>
+            <strong>${escapeHtml(dataset.title)}</strong><br>
+            <small>${escapeHtml(dataset.organization)} • Updated: ${escapeHtml(dataset.updated)}</small><br>
+            <a href="${toSafeUrl(dataset.url)}" target="_blank" rel="noopener noreferrer">Open dataset</a>
+        </li>
+    `).join('');
+    const sourceLinks = data.source_urls.map((url) => `<li><a href="${toSafeUrl(url)}" target="_blank" rel="noopener noreferrer">${escapeHtml(url)}</a></li>`).join('');
     document.getElementById('safetyData').innerHTML = `
         <div class="card safety-card">
-            <h2>Public Safety</h2>
+            <h2>Public Safety - ${escapeHtml(data.city)}</h2>
             <div class="data-content">
-                <p><strong>Crime Rate:</strong> ${data.crime_rate}</p>
-                <p><strong>Crime Solve Rate:</strong> ${data.crime_solve_rate}%</p>
-                <p><strong>Police Stations:</strong> ${data.police_stations}</p>
-                <p><strong>Fire Stations:</strong> ${data.fire_stations}</p>
-                <p><strong>Police Personnel:</strong> ${data.police_personnel}</p>
-                <p><strong>Fire Personnel:</strong> ${data.fire_personnel}</p>
-                <p><strong>Average Response Time:</strong> ${data.average_response_time}</p>
+                <p><strong>CKAN Search Endpoint:</strong> <a href="${toSafeUrl(data.source_query_url)}" target="_blank" rel="noopener noreferrer">View query</a></p>
+                <p><strong>Datasets Found:</strong> ${data.datasets.length}</p>
+                <ul>${datasetHtml || '<li>No dataset entries returned.</li>'}</ul>
+                <p><strong>Exact public sources:</strong></p>
+                <ul>${sourceLinks}</ul>
             </div>
         </div>
     `;
