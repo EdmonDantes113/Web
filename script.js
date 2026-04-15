@@ -44,7 +44,10 @@ const API_CONFIG = {
     }
 };
 
+// Heuristic factor for approximating monthly median income from annual per-capita GDP output.
 const ECONOMIC_MEDIAN_INCOME_ESTIMATE_FACTOR = 0.45;
+const MONTHS_PER_YEAR = 12;
+const ECONOMIC_POVERTY_FALLBACK = 8.5; // Fallback baseline when latest World Bank poverty value is unavailable.
 
 // Utility function to create DOM elements
 function createElement(tag, className, textContent) {
@@ -223,7 +226,7 @@ async function fetchEconomicData() {
 
         const gdpPerCapitaPhpRaw = gdpPerCapitaUsd * usdToPhp;
         const gdpPerCapitaPhp = Math.round(gdpPerCapitaPhpRaw);
-        const medianIncome = Math.round((gdpPerCapitaPhpRaw / 12) * ECONOMIC_MEDIAN_INCOME_ESTIMATE_FACTOR);
+        const medianIncome = Math.round((gdpPerCapitaPhpRaw / MONTHS_PER_YEAR) * ECONOMIC_MEDIAN_INCOME_ESTIMATE_FACTOR);
         const employmentRateRaw = 100 - unemploymentRate;
         const employmentRateRounded = +employmentRateRaw.toFixed(1);
         const employmentRate = Math.max(0, Math.min(100, employmentRateRounded));
@@ -245,7 +248,7 @@ async function fetchEconomicData() {
                 "Tourism",
                 "Agriculture"
             ],
-            poverty_incidence: povertyIncidence !== null ? +povertyIncidence.toFixed(1) : 8.5, // %
+            poverty_incidence: povertyIncidence !== null ? +povertyIncidence.toFixed(1) : ECONOMIC_POVERTY_FALLBACK, // %
             median_income: medianIncome // PHP monthly (estimated from per-capita GDP)
         };
     } catch (error) {
