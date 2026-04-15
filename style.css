@@ -252,7 +252,7 @@ header p {
 
 .social-embed-wrap iframe {
     width: 100%;
-    min-height: 680px;
+    height: 700px;
     border: none;
     border-radius: 12px;
 }
