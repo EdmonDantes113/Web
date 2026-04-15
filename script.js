@@ -794,11 +794,11 @@ function renderWeatherData(data) {
                     <div style="font-size:1.1rem;font-weight:600;">${data.weather[0].main}</div>
                 </div>
                 <div style="flex:1;min-width:180px;">
-                    <p><strong>Temperature:</strong> ${data.main.temp}°C${data.main.feels_like !== null ? ` (feels like ${data.main.feels_like}°C)` : ''}</p>
+                    <p><strong>Temperature:</strong> ${data.main.temp}°C (feels like ${data.main.feels_like !== null ? `${data.main.feels_like}°C` : 'Unavailable'})</p>
                     <p><strong>Condition:</strong> ${data.weather[0].description}</p>
                     <p><strong>Humidity:</strong> ${data.main.humidity !== null ? `${data.main.humidity}%` : 'Unavailable'}</p>
                     <p><strong>Pressure:</strong> ${data.main.pressure !== null ? `${data.main.pressure} hPa` : 'Unavailable'}</p>
-                    <p><strong>Wind Speed:</strong> ${data.wind.speed != null ? `${data.wind.speed} km/h` : 'Unavailable'}</p>
+                    <p><strong>Wind Speed:</strong> ${data.wind.speed !== null && data.wind.speed !== undefined ? `${data.wind.speed} km/h` : 'Unavailable'}</p>
                 </div>
                 <div style="flex:1;min-width:180px;">
                     <canvas id="weatherChart" width="180" height="120"></canvas>
