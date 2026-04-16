@@ -679,10 +679,10 @@ document.addEventListener('DOMContentLoaded', function() {
             const activeBtn = document.querySelector('.tab-btn.active');
             const activeTab = activeBtn ? activeBtn.getAttribute('data-tab') : 'weather';
             currentCity = e.target.value;
-            updateFacebookPageForCity(currentCity);
             tabDataCache = {};
             updateDashboardTitle(currentCity);
             await loadAllData(currentCity);
+            updateFacebookPageForCity(currentCity);
             setActiveTab(activeTab);
         });
     }
@@ -889,6 +889,8 @@ function renderTrafficData(data) {
 // Render social data
 function renderSocialData(data) {
     if (!data) return;
+    const defaultFacebookPageUrl = 'https://www.facebook.com/sdjmpio';
+    const currentFacebookPageUrl = toSafeFacebookPageUrl(data.page_url || defaultFacebookPageUrl);
     document.getElementById('socialData').innerHTML = `
         <div class="card">
             <h2>Official LGU Facebook - ${escapeHtml(data.city)}</h2>
@@ -897,7 +899,7 @@ function renderSocialData(data) {
                 <div id="fb-root"></div>
                 <div
                     class="fb-page"
-                    data-href="https://www.facebook.com/sdjmpio"
+                    data-href="${currentFacebookPageUrl}"
                     data-tabs="timeline"
                     data-width="500"
                     data-height="700"
@@ -905,8 +907,8 @@ function renderSocialData(data) {
                     data-adapt-container-width="true"
                     data-hide-cover="false"
                     data-show-facepile="true">
-                    <blockquote cite="${toSafeUrl(data.page_url)}" class="fb-xfbml-parse-ignore">
-                        <a href="${toSafeUrl(data.page_url)}">${escapeHtml(data.page_url)}</a>
+                    <blockquote cite="${currentFacebookPageUrl}" class="fb-xfbml-parse-ignore">
+                        <a href="${currentFacebookPageUrl}">${escapeHtml(currentFacebookPageUrl)}</a>
                     </blockquote>
                 </div>
             </div>
