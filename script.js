@@ -27,7 +27,7 @@ const CITY_CONFIG = {
         province: 'Bulacan',
         latitude: 14.8147,
         longitude: 121.0490,
-        facebookPageUrl: 'https://www.facebook.com/CityGovtOfSJDM',
+        facebookPageUrl: 'https://www.facebook.com/sdjmpio',
         sources: {
             census: [
                 'https://www.psa.gov.ph/statistics/census/population-and-housing',
@@ -57,7 +57,7 @@ const CITY_CONFIG = {
         province: 'Bulacan',
         latitude: 14.7570,
         longitude: 120.9455,
-        facebookPageUrl: 'https://www.facebook.com/MarilaoLGU',
+        facebookPageUrl: 'https://www.facebook.com/MarileNews',
         sources: {
             census: [
                 'https://www.psa.gov.ph/statistics/census/population-and-housing',
@@ -679,10 +679,10 @@ document.addEventListener('DOMContentLoaded', function() {
             const activeBtn = document.querySelector('.tab-btn.active');
             const activeTab = activeBtn ? activeBtn.getAttribute('data-tab') : 'weather';
             currentCity = e.target.value;
+            updateFacebookPageForCity(currentCity);
             tabDataCache = {};
             updateDashboardTitle(currentCity);
             await loadAllData(currentCity);
-            updateSocialIframeForCity(currentCity);
             setActiveTab(activeTab);
         });
     }
@@ -894,28 +894,47 @@ function renderSocialData(data) {
             <h2>Official LGU Facebook - ${escapeHtml(data.city)}</h2>
             <div class="data-content social-embed-wrap">
                 <p><strong>Page URL:</strong> <a href="${toSafeUrl(data.page_url)}" target="_blank" rel="noopener noreferrer">${escapeHtml(data.page_url)}</a></p>
-                <iframe
-                    id="facebookTimelineIframe"
-                    title="Facebook Page Plugin - ${escapeHtml(data.city)}"
-                    src="${toSafeFacebookPluginUrl(data.page_plugin_url)}"
-                    width="100%"
-                    height="700"
-                    allow="encrypted-media; picture-in-picture; web-share"
-                    loading="lazy">
-                </iframe>
+                <div id="fb-root"></div>
+                <div
+                    class="fb-page"
+                    data-href="https://www.facebook.com/sdjmpio"
+                    data-tabs="timeline"
+                    data-width="500"
+                    data-height="700"
+                    data-small-header="false"
+                    data-adapt-container-width="true"
+                    data-hide-cover="false"
+                    data-show-facepile="true">
+                    <blockquote cite="${toSafeUrl(data.page_url)}" class="fb-xfbml-parse-ignore">
+                        <a href="${toSafeUrl(data.page_url)}">${escapeHtml(data.page_url)}</a>
+                    </blockquote>
+                </div>
             </div>
         </div>
     `;
+    updateFacebookPageForCity(data.city);
 }
 
-function updateSocialIframeForCity(city) {
-    const iframe = document.getElementById('facebookTimelineIframe');
-    if (!iframe) {
-        console.warn('Facebook timeline iframe not found for city switch:', safeLogValue(city));
+function updateFacebookPageForCity(city) {
+    const fbPage = document.querySelector('.fb-page');
+    if (!fbPage) {
+        console.warn('Facebook page element not found for city switch:', safeLogValue(city));
         return;
     }
-    const cityConfig = getCityConfig(city);
-    iframe.src = buildFacebookPluginUrl(cityConfig.facebookPageUrl);
+    const facebookPageUrl = city === 'Marilao'
+        ? 'https://www.facebook.com/MarileNews'
+        : 'https://www.facebook.com/sdjmpio';
+    fbPage.setAttribute('data-href', facebookPageUrl);
+    const blockquote = fbPage.querySelector('blockquote');
+    const anchor = blockquote ? blockquote.querySelector('a') : null;
+    if (blockquote) blockquote.setAttribute('cite', facebookPageUrl);
+    if (anchor) {
+        anchor.setAttribute('href', facebookPageUrl);
+        anchor.textContent = facebookPageUrl;
+    }
+    if (typeof FB !== 'undefined' && FB.XFBML && typeof FB.XFBML.parse === 'function') {
+        FB.XFBML.parse();
+    }
 }
 
 // Render health data
