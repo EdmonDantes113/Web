@@ -892,14 +892,14 @@ function renderTrafficData(data) {
 // Render social data
 function renderSocialData(data) {
     if (!data) return;
-    const fallbackFacebookPageUrl = getCityConfig(data.city).facebookPageUrl || getCityConfig('San Jose Del Monte').facebookPageUrl;
+    const cityConfig = getCityConfig(data.city);
+    const fallbackFacebookPageUrl = cityConfig.facebookPageUrl || getCityConfig('San Jose Del Monte').facebookPageUrl;
     const currentFacebookPageUrl = toSafeFacebookPageUrl(data.page_url || fallbackFacebookPageUrl);
     document.getElementById('socialData').innerHTML = `
         <div class="card">
             <h2>Official LGU Facebook - ${escapeHtml(data.city)}</h2>
             <div class="data-content social-embed-wrap">
                 <p><strong>Page URL:</strong> <a href="${toSafeUrl(data.page_url)}" target="_blank" rel="noopener noreferrer">${escapeHtml(data.page_url)}</a></p>
-                <div id="fb-root"></div>
                 <div
                     class="fb-page"
                     data-href="${currentFacebookPageUrl}"
