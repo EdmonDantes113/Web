@@ -20,6 +20,9 @@ const API_CONFIG = {
     }
 };
 
+const SJDM_FACEBOOK_PAGE_URL = 'https://www.facebook.com/sdjmpio';
+const MARILAO_FACEBOOK_PAGE_URL = 'https://www.facebook.com/MarileNews';
+
 const CITY_CONFIG = {
     'San Jose Del Monte': {
         localityType: 'City',
@@ -27,7 +30,7 @@ const CITY_CONFIG = {
         province: 'Bulacan',
         latitude: 14.8147,
         longitude: 121.0490,
-        facebookPageUrl: 'https://www.facebook.com/sdjmpio',
+        facebookPageUrl: SJDM_FACEBOOK_PAGE_URL,
         sources: {
             census: [
                 'https://www.psa.gov.ph/statistics/census/population-and-housing',
@@ -57,7 +60,7 @@ const CITY_CONFIG = {
         province: 'Bulacan',
         latitude: 14.7570,
         longitude: 120.9455,
-        facebookPageUrl: 'https://www.facebook.com/MarileNews',
+        facebookPageUrl: MARILAO_FACEBOOK_PAGE_URL,
         sources: {
             census: [
                 'https://www.psa.gov.ph/statistics/census/population-and-housing',
@@ -889,8 +892,7 @@ function renderTrafficData(data) {
 // Render social data
 function renderSocialData(data) {
     if (!data) return;
-    const defaultFacebookPageUrl = 'https://www.facebook.com/sdjmpio';
-    const currentFacebookPageUrl = toSafeFacebookPageUrl(data.page_url || defaultFacebookPageUrl);
+    const currentFacebookPageUrl = toSafeFacebookPageUrl(data.page_url || SJDM_FACEBOOK_PAGE_URL);
     document.getElementById('socialData').innerHTML = `
         <div class="card">
             <h2>Official LGU Facebook - ${escapeHtml(data.city)}</h2>
@@ -927,11 +929,11 @@ function updateFacebookPageForCity(city) {
     const facebookPageUrl = toSafeFacebookPageUrl(cityConfig.facebookPageUrl);
     fbPage.setAttribute('data-href', facebookPageUrl);
     const blockquote = fbPage.querySelector('blockquote');
-    const anchor = blockquote ? blockquote.querySelector('a') : null;
+    const anchorElement = blockquote ? blockquote.querySelector('a') : null;
     if (blockquote) blockquote.setAttribute('cite', facebookPageUrl);
-    if (anchor) {
-        anchor.setAttribute('href', facebookPageUrl);
-        anchor.textContent = facebookPageUrl;
+    if (anchorElement) {
+        anchorElement.setAttribute('href', facebookPageUrl);
+        anchorElement.textContent = facebookPageUrl;
     }
     if (typeof FB !== 'undefined' && FB.XFBML && typeof FB.XFBML.parse === 'function') {
         FB.XFBML.parse();
