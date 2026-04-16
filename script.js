@@ -892,7 +892,8 @@ function renderTrafficData(data) {
 // Render social data
 function renderSocialData(data) {
     if (!data) return;
-    const currentFacebookPageUrl = toSafeFacebookPageUrl(data.page_url || SJDM_FACEBOOK_PAGE_URL);
+    const fallbackFacebookPageUrl = getCityConfig(data.city).facebookPageUrl || getCityConfig('San Jose Del Monte').facebookPageUrl;
+    const currentFacebookPageUrl = toSafeFacebookPageUrl(data.page_url || fallbackFacebookPageUrl);
     document.getElementById('socialData').innerHTML = `
         <div class="card">
             <h2>Official LGU Facebook - ${escapeHtml(data.city)}</h2>
@@ -928,13 +929,6 @@ function updateFacebookPageForCity(city) {
     const cityConfig = getCityConfig(city);
     const facebookPageUrl = toSafeFacebookPageUrl(cityConfig.facebookPageUrl);
     fbPage.setAttribute('data-href', facebookPageUrl);
-    const blockquote = fbPage.querySelector('blockquote');
-    const anchorElement = blockquote ? blockquote.querySelector('a') : null;
-    if (blockquote) blockquote.setAttribute('cite', facebookPageUrl);
-    if (anchorElement) {
-        anchorElement.setAttribute('href', facebookPageUrl);
-        anchorElement.textContent = facebookPageUrl;
-    }
     if (typeof FB !== 'undefined' && FB.XFBML && typeof FB.XFBML.parse === 'function') {
         FB.XFBML.parse();
     }
