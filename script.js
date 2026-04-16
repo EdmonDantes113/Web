@@ -921,9 +921,8 @@ function updateFacebookPageForCity(city) {
         console.warn('Facebook page element not found for city switch:', safeLogValue(city));
         return;
     }
-    const facebookPageUrl = city === 'Marilao'
-        ? 'https://www.facebook.com/MarileNews'
-        : 'https://www.facebook.com/sdjmpio';
+    const cityConfig = getCityConfig(city);
+    const facebookPageUrl = toSafeFacebookPageUrl(cityConfig.facebookPageUrl);
     fbPage.setAttribute('data-href', facebookPageUrl);
     const blockquote = fbPage.querySelector('blockquote');
     const anchor = blockquote ? blockquote.querySelector('a') : null;
